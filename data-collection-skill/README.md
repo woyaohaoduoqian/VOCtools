@@ -1,4 +1,4 @@
-# WinSight 调研智能体资产包
+# VOCtools智能体资产包
 
 ## 结构
 
@@ -18,7 +18,5 @@ insight-writing/             → skill 4:洞察输出(编码、证据强弱、�
 4. 验证:问 agent "读 data-collection skill 里 providers/apify-instagram.json 第一个 actor 的 slug"
 
 ## 待核对
-
-文中标【待核对】处为凭记忆重构,需对照《研究方法论 v0.3》原文订正:
 - research-planning:预注册模板
 - insight-writing:完整证据强弱表、禁用词清单、编码一致率抽检阈值
