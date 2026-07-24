@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "updated": "2026-07-26",
+  "updated": "2026-07-24",
   "note": "采集工具薄索引。选工具只读本文件;命中后再读对应 doc。新增工具在此加条目,SKILL.md 不动。",
   "providers": [
     {
@@ -98,7 +98,7 @@
       },
       "prerequisite": "APIFY_TOKEN 可获得(与 Instagram 共用同一凭证路径)",
       "blocker": "未试跑。按纪律,combos、单价、字段覆盖、评论树完整度只认试跑实测,试跑通过并生成 spec 后 status 改为已接入。",
-      "decision_note": "2026-07-26 决定:Reddit 走 Apify actor。托管 reddit-research-mcp 因 WinSight 平台不支持 OAuth 无法绑定(MCP 本身可用,是平台侧限制);Reddit 官方 script 应用因搜索上限 250 条对探索式研究不可用,两者均弃。"
+      "decision_note": "2026-07-24 决定:Reddit 走 Apify actor。托管 reddit-research-mcp 因 WinSight 平台不支持 OAuth 无法绑定(MCP 本身可用,是平台侧限制);Reddit 官方 script 应用因搜索上限 250 条对探索式研究不可用,两者均弃。"
     },
     {
       "provider": "mediacrawler",

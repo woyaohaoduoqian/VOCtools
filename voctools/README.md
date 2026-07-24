@@ -4,25 +4,27 @@
 
 ## 结构
 
-soul.md 贴进 agent 配置页的「角色说明」,不是 skill
+```
+soul.md                      贴进 agent 配置页的「角色说明」,不是 skill
 
-research-planning/ skill 1 · 方案规划
-├── SKILL.md 七步:补全信息 → 定目的 → 可答性 → 关键词 → 平台 → 侦察 → 出方案
-└── platforms/ 平台画像(研究特性,不含工具信息)
-├── _template.md 新增平台照此填
-├── instagram.md 已接入
-├── reddit.md / tiktok.md / etsy.md 未接入,但可推荐
+research-planning/           skill 1 · 方案规划
+├── SKILL.md                 七步:补全信息 → 定目的 → 可答性 → 关键词 → 平台 → 侦察 → 出方案
+└── platforms/               平台画像(研究特性,不含工具信息)
+    ├── _template.md         新增平台照此填
+    ├── instagram.md         已接入
+    └── reddit.md / tiktok.md / etsy.md   未接入,但可推荐
 
-data-collection/ skill 2 · 采集执行
-├── SKILL.md 预检 → 拆任务 → 轮次 → 选工具 → 试跑 → 确认 → 全量 → 落盘
-└── providers/ 工具知识,与流程分离
-├── registry.json 薄索引,选工具只读这个(唯一事实源)
-├── _template.md 新增工具照此填
-├── apify.md Apify 调用协议
-└── apify-instagram.json IG 能力规格(build 脚本生成,勿手改)
+data-collection/             skill 2 · 采集执行
+├── SKILL.md                 预检 → 拆任务 → 轮次 → 选工具 → 试跑 → 确认 → 全量 → 落盘
+└── providers/               工具知识,与流程分离
+    ├── registry.json        薄索引,选工具只读这个(唯一事实源)
+    ├── _template.md         新增工具照此填
+    ├── apify.md             Apify 调用协议
+    └── apify-instagram.json IG 能力规格(build 脚本生成,勿手改)
 
-quality-check/SKILL.md skill 3 · 两道闸门 + 多轮节奏 + 饱和判定,产出 quality.md
-insight-writing/SKILL.md skill 4 · 编码 → 证据强弱 → 报告,产出 report.md
+quality-check/SKILL.md       skill 3 · 两道闸门 + 多轮节奏 + 饱和判定,产出 quality.md
+insight-writing/SKILL.md     skill 4 · 编码 → 证据强弱 → 报告,产出 report.md
+```
 
 
 ## 设计原则

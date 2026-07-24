@@ -41,8 +41,9 @@ GET {BASE}/actor-runs/{runId}?token={APIFY_TOKEN}
 每 5 秒一次
 → data.status == "SUCCEEDED" → 取数
 → "FAILED" / "ABORTED" / "TIMED-OUT" → 报错停止(不重试)
-→ 超过 5 分钟仍在运行 → POST {BASE}/actor-runs/{runId}/abort?token={APIFY_TOKEN}
-中止并报告已花费代价
+→ 超时判定:试跑 5 分钟;全量按 max(5 分钟, 预计条数 ÷ 100 分钟)。超时后**停止轮询、不自动 abort**
+(abort 会丢已采数据但停止计费,继续等则可能追加费用,取舍交用户),报告 runId、已等待时长、
+预估已产生费用,给两个选项:继续等待 / 中止(POST {BASE}/actor-runs/{runId}/abort?token={APIFY_TOKEN})
 取数
 GET {BASE}/actor-runs/{runId}/dataset/items?token={APIFY_TOKEN}
 → JSON 数组,按 SKILL.md 的输出契约提取字段
@@ -53,7 +54,7 @@ GET {BASE}/actor-runs/{runId}/dataset/items?token={APIFY_TOKEN}
 |---|---|
 | `$values` | 用户输入按逗号/换行拆成的数组 |
 | `$value` | 原始输入字符串 |
-| `$first` | 数组第一项 |
+| `$first` | 数组第一项(预留,当前规格未使用) |
 | `$tokens` | 数组每项清洗成合法 token:去开头 `#`、去空格和标点("press on nails" → "pressonnails"、"#nature" → "nature") |
 | `$limit` | 本次条数上限。试跑固定 5;全量按方案,方案没写就问 |
 
@@ -62,7 +63,7 @@ GET {BASE}/actor-runs/{runId}/dataset/items?token={APIFY_TOKEN}
 ## 3. 代价模型
 
 - **金钱**:`费用($) = pricePer1000 / 1000 × 预计总条数`。上限估算,实际按 Apify 返回条数计费。单价见规格文件的 `pricePer1000`,当前范围 $0.7–2.3 / 千条。**试跑 5 条同样计费**——金额可忽略,但要知道不是免费。
-- **时间**:单任务通常 1–5 分钟;超过 5 分钟按调用契约中止。
+- **时间**:试跑通常 1–5 分钟;全量随条数增长。超时不自动中止,按调用契约的超时判定报告后由用户决定。
 - **账号风险**:无。不需要登录任何社交媒体账号。
 - **合规**:允许商用。采集受 Instagram 反爬机制与限额影响,偶发失败属正常现象。
 
@@ -72,9 +73,12 @@ GET {BASE}/actor-runs/{runId}/dataset/items?token={APIFY_TOKEN}
 
 结构要点:
 - 每个 actor 一条,含 `slug`、`pricePer1000`、`official`、`allInOne`
-- `capabilities[]`:每条是一个 `{start, content}` 组合 + 该组合的 `input` 模板
-- 字段定义分 `common` / `advanced` / `debug` 三档,每个字段含 `path`(可为数组,多重兜底)、`join`、`idOf` 等标记
-- 组合级 `excludeFields`:标了的字段该组合实际拿不到
+- actor 级 `fieldSets`:命名字段集(post / profile / comment / list 等)。每个字段含 `label`、`path`(可为数组,按序取第一个非空值)、`tier`(common / advanced / debug 三档),部分含 `join`
+- `capabilities[]`:每条是一个 `{start, content}` 组合,含:
+  - `input`:该组合的输入模板
+  - `fieldsRef`:引用 actor 级 fieldSets 的字段集名。个别 capability 用内联 `fields` 数组代替(build 脚本历史产出),两者含义相同,**查字段时两个键都要认**
+  - `idOf`:**去重键在 capability 级,不在字段级**。是路径数组(如 `["id","shortCode"]`),按序取第一个非空值作为该行的去重标识
+  - `excludeFields`(可选):标了的字段该组合实际拿不到
 
 **维护方式**:本文件由能力清单仓库的 build 脚本生成,与网站版共用同一份源头(actor-specs.md),**不要手工编辑**。actor 涨价、换 actor、字段变化时改源头后重新生成。
 
@@ -91,7 +95,7 @@ GET {BASE}/actor-runs/{runId}/dataset/items?token={APIFY_TOKEN}
 | 401 / 403 | 凭证无效或权限不足。若用户用了受限 token,提示可能缺"运行 actor"或"读取 dataset"权限 |
 | 启动返回非 2xx | actor slug 或 input 格式问题,附上实际请求体 |
 | 状态 FAILED / ABORTED | actor 侧失败,附 runId 供用户到 Apify Console 查日志 |
-| 超过 5 分钟未完成 | 已中止,报告已花费和已获数据 |
+| 超时(判定标准见调用契约) | 已停止轮询,报告 runId、已等待时长、预估费用,等用户选继续或中止 |
 | 返回空数组 | 可能原因:种子无效、私密账号、平台限流、内容不存在。**给选项,不自行换词重试** |
 | common 字段大面积为空 | 视为完成,标注为质量问题移交 quality-check,不要静默输出 |
 | 私密账号 | 部分 actor 返回空;规格的 `path` 已含多重兜底,仍为空则按上一条处理 |
