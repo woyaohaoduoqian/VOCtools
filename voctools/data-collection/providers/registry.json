@@ -1,1 +1,75 @@
+{
+  "schema_version": 1,
+  "updated": "2026-07-24",
+  "note": "采集工具薄索引。选工具只读本文件;命中后再读对应 doc。新增工具在此加条目,SKILL.md 不动。",
+  "providers": [
+    {
+      "provider": "apify",
+      "type": "rest_api",
+      "status": "已接入",
+      "stages": ["collection"],
+      "doc": "apify.md",
+      "spec": "apify-instagram.json",
+      "platforms": ["instagram"],
+      "combos": [
+        ["account", "followers"],
+        ["account", "following"],
+        ["account", "profile"],
+        ["account", "post"],
+        ["account", "reel"],
+        ["keyword", "profile"],
+        ["keyword", "post"],
+        ["keyword", "reel"],
+        ["hashtag", "post"],
+        ["hashtag", "reel"],
+        ["postUrl", "post"],
+        ["postUrl", "reel"],
+        ["postUrl", "comment"]
+      ],
+      "cost": {
+        "money": "付费,按结果计费 $0.7-2.3 / 千条,具体单价见 spec",
+        "time": "单任务通常 1-5 分钟",
+        "account_risk": "无,不需要登录任何社媒账号",
+        "compliance": "商用许可;采集受 Instagram 反爬影响,偶发失败属正常"
+      },
+      "prerequisite": "APIFY_TOKEN 可获得(获取优先级见 SKILL.md 凭证纪律)"
+    },
 
+    {
+      "provider": "reddit-research-mcp",
+      "type": "mcp",
+      "status": "待接入",
+      "stages": ["scouting", "collection"],
+      "platforms": ["reddit"],
+      "combos": [],
+      "cost": {
+        "money": "免费",
+        "time": "未测",
+        "account_risk": "无,不需要 Reddit 账号",
+        "compliance": "MIT 开源"
+      },
+      "blocker": "WinSight 不支持 OAuth,无法绑定该托管 MCP。自部署会失去其服务端的 2 万+ 社区语义索引,价值大减。",
+      "alternatives": [
+        "Apify 上的 Reddit actor:要花钱,零新增基础设施,直接在本 registry 加条目",
+        "Reddit 官方 API(script 类型应用):只需 client_id + secret,不走 OAuth 跳转;免费但搜索上限 250 条、无语义找社区"
+      ]
+    },
+
+    {
+      "provider": "mediacrawler",
+      "type": "self_hosted",
+      "status": "待评估",
+      "stages": ["collection"],
+      "platforms": ["xiaohongshu", "douyin", "kuaishou", "bilibili", "weibo", "tieba", "zhihu"],
+      "combos": [],
+      "cost": {
+        "money": "免费(不含服务器和代理成本)",
+        "time": "未测",
+        "account_risk": "高:需平台账号登录态,有封号风险",
+        "compliance": "项目声明仅供学习研究、禁止商业用途;国内平台用户协议通常也限制自动化采集"
+      },
+      "blocker": "合规问题未定,需公司层面拍板。技术上需部署为独立服务并包成 HTTP 接口(届时归为 rest_api 类型)。",
+      "note": "在此登记仅为验证架构可容纳此类工具。未获明确许可前不得调用。"
+    }
+  ]
+}
