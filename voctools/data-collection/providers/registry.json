@@ -1,30 +1,73 @@
 {
   "schema_version": 1,
-  "updated": "2026-07-24",
+  "updated": "2026-07-26",
   "note": "采集工具薄索引。选工具只读本文件;命中后再读对应 doc。新增工具在此加条目,SKILL.md 不动。",
   "providers": [
     {
       "provider": "apify",
       "type": "rest_api",
       "status": "已接入",
-      "stages": ["collection"],
+      "stages": [
+        "collection"
+      ],
       "doc": "apify.md",
       "spec": "apify-instagram.json",
-      "platforms": ["instagram"],
+      "platforms": [
+        "instagram"
+      ],
       "combos": [
-        ["account", "followers"],
-        ["account", "following"],
-        ["account", "profile"],
-        ["account", "post"],
-        ["account", "reel"],
-        ["keyword", "profile"],
-        ["keyword", "post"],
-        ["keyword", "reel"],
-        ["hashtag", "post"],
-        ["hashtag", "reel"],
-        ["postUrl", "post"],
-        ["postUrl", "reel"],
-        ["postUrl", "comment"]
+        [
+          "account",
+          "followers"
+        ],
+        [
+          "account",
+          "following"
+        ],
+        [
+          "account",
+          "profile"
+        ],
+        [
+          "account",
+          "post"
+        ],
+        [
+          "account",
+          "reel"
+        ],
+        [
+          "keyword",
+          "profile"
+        ],
+        [
+          "keyword",
+          "post"
+        ],
+        [
+          "keyword",
+          "reel"
+        ],
+        [
+          "hashtag",
+          "post"
+        ],
+        [
+          "hashtag",
+          "reel"
+        ],
+        [
+          "postUrl",
+          "post"
+        ],
+        [
+          "postUrl",
+          "reel"
+        ],
+        [
+          "postUrl",
+          "comment"
+        ]
       ],
       "cost": {
         "money": "付费,按结果计费 $0.7-2.3 / 千条,具体单价见 spec",
@@ -34,33 +77,45 @@
       },
       "prerequisite": "APIFY_TOKEN 可获得(获取优先级见 SKILL.md 凭证纪律)"
     },
-
     {
-      "provider": "reddit-research-mcp",
-      "type": "mcp",
-      "status": "待接入",
-      "stages": ["scouting", "collection"],
-      "platforms": ["reddit"],
+      "provider": "apify",
+      "type": "rest_api",
+      "status": "已选定,待试跑验证",
+      "stages": [
+        "collection"
+      ],
+      "doc": "apify.md",
+      "spec": "apify-reddit.json(待试跑后由 build 脚本生成)",
+      "platforms": [
+        "reddit"
+      ],
       "combos": [],
       "cost": {
-        "money": "免费",
+        "money": "付费,按结果计费,具体单价以试跑为准",
         "time": "未测",
         "account_risk": "无,不需要 Reddit 账号",
-        "compliance": "MIT 开源"
+        "compliance": "商用许可,同 Apify Instagram 条目"
       },
-      "blocker": "WinSight 不支持 OAuth,无法绑定该托管 MCP。自部署会失去其服务端的 2 万+ 社区语义索引,价值大减。",
-      "alternatives": [
-        "Apify 上的 Reddit actor:要花钱,零新增基础设施,直接在本 registry 加条目",
-        "Reddit 官方 API(script 类型应用):只需 client_id + secret,不走 OAuth 跳转;免费但搜索上限 250 条、无语义找社区"
-      ]
+      "prerequisite": "APIFY_TOKEN 可获得(与 Instagram 共用同一凭证路径)",
+      "blocker": "未试跑。按纪律,combos、单价、字段覆盖、评论树完整度只认试跑实测,试跑通过并生成 spec 后 status 改为已接入。",
+      "decision_note": "2026-07-26 决定:Reddit 走 Apify actor。托管 reddit-research-mcp 因 WinSight 平台不支持 OAuth 无法绑定(MCP 本身可用,是平台侧限制);Reddit 官方 script 应用因搜索上限 250 条对探索式研究不可用,两者均弃。"
     },
-
     {
       "provider": "mediacrawler",
       "type": "self_hosted",
       "status": "待评估",
-      "stages": ["collection"],
-      "platforms": ["xiaohongshu", "douyin", "kuaishou", "bilibili", "weibo", "tieba", "zhihu"],
+      "stages": [
+        "collection"
+      ],
+      "platforms": [
+        "xiaohongshu",
+        "douyin",
+        "kuaishou",
+        "bilibili",
+        "weibo",
+        "tieba",
+        "zhihu"
+      ],
       "combos": [],
       "cost": {
         "money": "免费(不含服务器和代理成本)",
