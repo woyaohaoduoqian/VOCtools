@@ -1,15 +1,38 @@
+# Provider 文档模板
+
+新增采集工具时复制本文件,改名为 `{provider}.md`,填完六节。同时在 `registry.json` 加一条对应条目。
+
+## 文件开头的 frontmatter
+
+每个 provider 文档必须以 YAML frontmatter 开头,字段如下:
+
+```yaml
 ---
-provider: 工具名(小写,与 registry.json 的 provider 字段一致)
-type: rest_api | mcp | self_hosted | browser
-status: 已接入 | 待接入 | 待评估 | 已停用
-platforms: [覆盖的平台]
-stages: [collection] 或 [scouting, collection]
-spec: 能力规格文件名,或 runtime(自文档化工具)
+provider: apify
+type: rest_api
+status: 已接入
+platforms: [instagram]
+stages: [collection]
+spec: apify-instagram.json
+---
+```
+
+字段取值:
+
+| 字段 | 取值 | 说明 |
+|---|---|---|
+| `provider` | 小写标识 | 必须与 registry.json 的 provider 字段一致 |
+| `type` | `rest_api` / `mcp` / `self_hosted` / `browser` | 决定调用契约怎么写 |
+| `status` | `已接入` / `待接入` / `待评估` / `已停用` | 非"已接入"的不得调用 |
+| `platforms` | 数组 | 覆盖的平台 |
+| `stages` | 数组,`collection` 和/或 `scouting` | 可服务哪些阶段 |
+| `spec` | 文件名 或 `runtime` | 能力规格来源;自文档化工具填 `runtime` |
+
+含中文、冒号、方括号、竖线的值一律用引号包起来,避免解析出错。
+
 ---
 
-# Provider:{名称}
-
-一句话说明这是什么、数据从哪来。
+以下是正文六节的结构。
 
 ## 1. 前置条件
 
