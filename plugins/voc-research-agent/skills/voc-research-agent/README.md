@@ -52,14 +52,14 @@ scripts/voc_workbench.py     本地工作台：init → quality → summarize �
 
 ### 公开 Web 分发（Cloudflare）
 
-仓库中的 [`cloudflare/`](../cloudflare/README.md) 是可部署的 Workers Web 应用：访客填写研究简报、由服务端模型生成**待确认**方案并下载 `plan.md`。模型密钥只保存在 Cloudflare Secret；应用不会在浏览器端暴露凭证，也不会未确认即发起采集。发布命令、Secret 配置、上线前访问控制要求见该目录 README。
+仓库中的 [`cloudflare/`](cloudflare/README.md) 是可部署的 Workers Web 应用：访客填写研究简报、由服务端模型生成**待确认**方案并下载 `plan.md`。模型密钥只保存在 Cloudflare Secret；应用不会在浏览器端暴露凭证，也不会未确认即发起采集。发布命令、Secret 配置、上线前访问控制要求见该目录 README。
 
 ### 本地执行工作台
 
 在仓库根目录运行：
 
 ```powershell
-node voctools/scripts/voc_workbench.mjs init --root research --name "研究主题-日期"
+node scripts/voc_workbench.mjs init --root research --name "研究主题-日期"
 ```
 
 这会创建标准任务目录和待确认的 `plan.md`。完整命令与数据约定见 [scripts/README.md](scripts/README.md)；工作台不替代采集授权和四阶段 skill 的判断。

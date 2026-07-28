@@ -7,7 +7,7 @@
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
     "check": "node --check src/worker.js && node --check public/app.js",
-    "test": "node ../voctools/tests/run.mjs"
+    "test": "node ../tests/run.mjs"
   },
   "devDependencies": {
     "wrangler": "^4.0.0"
