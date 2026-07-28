@@ -8,8 +8,6 @@
 agent/                 唯一源码：总流程、四阶段 skills、平台与 provider 规格、工作台脚本
 docs/                  安装、验收与架构说明
 tests/                 回归与部署契约检查
-.codex-plugin/         Codex 插件清单
-.mcp.json              Reddit MCP 运行配置
 plugins/               自动生成的插件发布副本，不直接编辑
 archive/               非运行资产；Cloudflare 原型仅作历史保留
 ```
@@ -26,7 +24,7 @@ archive/               非运行资产；Cloudflare 原型仅作历史保留
 
 提供 GitHub 项目地址即可取得同一份插件定义，但运行态需要在新环境重新完成：
 
-1. 安装插件并加载 `.mcp.json`。
+1. 安装插件；插件包会加载其自身的 `.mcp.json`。
 2. 若研究 Instagram：安全配置 `APIFY_TOKEN`（不提交到 GitHub）。
 3. 若研究 Reddit：完成 Reddit MCP 的 OAuth。
 4. 运行部署契约与回归检查。

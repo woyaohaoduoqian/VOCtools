@@ -16,7 +16,7 @@ description: 执行可溯源的 VOC（用户之声）调研：从澄清需求、
 先由 `skills/research-planning/SKILL.md` 与用户确认研究平台，再按本次计划预检：
 
 1. 计划包含 Instagram：确认运行环境可发起 HTTPS API 请求，且 `APIFY_TOKEN` 已安全注入；不得要求用户在对话、文件或 `manifest.json` 中粘贴它。
-2. 计划包含 Reddit：确认 Reddit Research MCP 工具已注入；首次使用时提示用户完成 OAuth，授权完成前不采集 Reddit。
+2. 计划包含 Reddit：依次确认插件包已加载 MCP 配置、MCP 已连接、工具已注入。只有工具已注入且服务要求授权时，才提示用户完成 OAuth；授权完成前不采集 Reddit。不得将启动或连接失败笼统说成“需要 OAuth”。
 3. 未选择的平台不检查、不要求凭证。已选择平台的能力不满足时，说明该平台本次不可用，等待用户修改方案或完成配置；不得擅自切换平台。
 
 1. 收到任何调研需求，先读 `skills/research-planning/SKILL.md`，只澄清和输出 `plan.md`；方案未经用户确认不得采集。

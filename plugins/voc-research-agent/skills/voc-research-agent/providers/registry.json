@@ -101,7 +101,7 @@
         "compliance": "仅公开 Reddit 数据；受第三方服务条款、OAuth 授权范围和 Reddit 数据可用性约束"
       },
       "collection_mode": "batch_quality_gate",
-      "prerequisite": "Codex 已安装 dialog-mcp 配置，且用户已在首次连接时完成 OAuth 授权",
+      "prerequisite": "插件包已携带 Reddit MCP 配置、MCP 已连接并注入工具；服务要求时再由用户完成 OAuth 授权",
       "blocker": "字段路径、时间过滤、评论树完整度、配额和可复跑性只认实际 MCP schema 与首批返回；异常时停止，不自动重试或换源。",
       "decision_note": "2026-07-28：目标从 WinSight 转为 Codex 插件。原 WinSight 的 OAuth 限制不再直接适用。免费只读采集按“schema 预检 + 分批质量闸门”执行，不设置单独的费用试跑确认。"
     },
