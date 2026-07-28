@@ -1,6 +1,6 @@
 # VOCtools
 
-一个可迁移、可审计的 Codex VOC 调研插件。GitHub 是唯一源码和安装来源；任何部署环境都必须同时支持外部 API 调用/安全密钥注入与 Reddit MCP/OAuth，缺任一能力即不支持部署。
+一个可迁移、可审计的 Codex VOC 调研插件。GitHub 是唯一源码和安装来源；所需运行能力由用户选择的平台决定：Instagram 使用 Apify API，Reddit 使用 MCP/OAuth。
 
 ## 仓库结构
 
@@ -27,8 +27,8 @@ archive/               非运行资产；Cloudflare 原型仅作历史保留
 提供 GitHub 项目地址即可取得同一份插件定义，但运行态需要在新环境重新完成：
 
 1. 安装插件并加载 `.mcp.json`。
-2. 安全配置 `APIFY_TOKEN`（不提交到 GitHub）。
-3. 完成 Reddit MCP 的 OAuth。
+2. 若研究 Instagram：安全配置 `APIFY_TOKEN`（不提交到 GitHub）。
+3. 若研究 Reddit：完成 Reddit MCP 的 OAuth。
 4. 运行部署契约与回归检查。
 
 详见 [安装与调试](docs/CODEX_SETUP.md) 与 [部署能力契约](docs/ARCHITECTURE.md)。
