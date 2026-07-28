@@ -38,11 +38,11 @@ description: 按已确认的调研方案执行数据采集。负责 provider 预
 |---|---|
 | `rest_api` | 凭证可获得(见凭证纪律) |
 | `mcp` | 该 MCP 已在 agent 配置中绑定,工具已注入 |
-| `mcp_http_via_remote` | 该 MCP 配置已安装、用户已完成首次 OAuth（如需要）、工具已注入 |
+| `mcp_http_via_remote` | 依次确认插件包携带 MCP 配置、MCP 已连接、工具已注入；仅在服务要求授权时检查 OAuth |
 | `self_hosted` | 服务在运行且可达 |
 | `browser` | 目标站点可访问 |
 
-不满足的标记为**本次不可用**,不进入候选。全部不可用 → 停止,告知用户缺什么,退回规划。
+不满足的标记为**本次不可用**,不进入候选。对 MCP 必须报告准确状态：`plugin_package_invalid`、`mcp_connection_failed`、`mcp_tools_not_injected`、`oauth_pending` 或 `oauth_failed`；不得将前 3 类归为 OAuth。全部不可用 → 停止,告知用户缺什么,退回规划。
 
 预检结果要展示给用户:哪些平台这次能采、哪些不能、原因是什么。
 

@@ -5,8 +5,10 @@ import { resolve } from "node:path";
 const root = resolve(import.meta.dirname, "..");
 const readJson = async (file) => JSON.parse(await readFile(resolve(root, file), "utf8"));
 const registry = await readJson("agent/providers/registry.json");
-const plugin = await readJson(".codex-plugin/plugin.json");
-const mcp = await readJson(".mcp.json");
+const plugin = await readJson("agent/plugin/.codex-plugin/plugin.json");
+const mcp = await readJson("agent/plugin/.mcp.json");
+const publishedPlugin = await readJson("plugins/voc-research-agent/.codex-plugin/plugin.json");
+const publishedMcp = await readJson("plugins/voc-research-agent/.mcp.json");
 
 const apify = registry.providers.find(({ provider, platforms }) => provider === "apify" && platforms.includes("instagram"));
 const reddit = registry.providers.find(({ provider }) => provider === "reddit-research-mcp");
@@ -18,6 +20,10 @@ assert.equal(registry.providers.some(({ provider, platforms }) => provider === "
 await access(resolve(root, "agent/providers/apify.md"));
 await access(resolve(root, "agent/providers/reddit-research-mcp.md"));
 assert.equal(plugin.mcpServers, "./.mcp.json", "Plugin must load the Reddit MCP configuration");
-assert.ok(mcp.mcpServers["dialog-mcp"], "Reddit MCP configuration is required");
+assert.equal(plugin.skills, "./skills/", "Plugin skills must resolve inside the installed plugin package");
+assert.deepEqual(publishedPlugin, plugin, "Published plugin manifest must match the agent source");
+assert.deepEqual(publishedMcp, mcp, "Published MCP configuration must match the agent source");
+assert.equal(mcp.mcpServers["reddit-research-mcp"]?.type, "http", "Reddit MCP must use native HTTP transport");
+assert.equal(mcp.mcpServers["reddit-research-mcp"]?.url, "https://reddit-research-mcp.fastmcp.app/mcp", "Reddit MCP endpoint is required");
 
 console.log("Plugin deployment contract passed");

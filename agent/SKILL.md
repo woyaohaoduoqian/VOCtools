@@ -9,15 +9,15 @@ description: 执行可溯源的 VOC（用户之声）调研：从澄清需求、
 
 ## 运行环境
 
-本 skill 运行于已安装插件的 Codex 环境。部署前必须同时满足：可发起外部 HTTPS API 请求并安全注入 `APIFY_TOKEN`，以及 `.mcp.json` 所定义的 Reddit MCP 可用并能完成 OAuth。Apify 只依赖标准 API 调用，不要求专用插件；缺任一能力时，环境不支持本插件，不得以“只启用部分平台”的方式部署。GitHub 仓库只是代码与配置的分发位置，不能单独构成采集能力。
+本 skill 运行于已安装插件的 Codex 环境。GitHub 仓库只是代码与配置的分发位置，不能单独构成采集能力。运行能力按本次研究平台判定：Instagram 使用 Apify API；Reddit 使用 `.mcp.json` 所定义的 Reddit MCP。
 
 ## 任务启动预检
 
-在创建或执行任何调研任务前，依次确认：
+先由 `skills/research-planning/SKILL.md` 与用户确认研究平台，再按本次计划预检：
 
-1. `APIFY_TOKEN` 已在运行环境安全注入；不得要求用户在对话、文件或 `manifest.json` 中粘贴它。
-2. Reddit Research MCP 工具已注入；首次使用时由用户完成 OAuth。
-3. 任一项未满足：明确报告“当前环境不支持本插件”，停止，不以单平台或手工猜测替代。
+1. 计划包含 Instagram：确认运行环境可发起 HTTPS API 请求，且 `APIFY_TOKEN` 已安全注入；不得要求用户在对话、文件或 `manifest.json` 中粘贴它。
+2. 计划包含 Reddit：依次确认插件包已加载 MCP 配置、MCP 已连接、工具已注入。只有工具已注入且服务要求授权时，才提示用户完成 OAuth；授权完成前不采集 Reddit。不得将启动或连接失败笼统说成“需要 OAuth”。
+3. 未选择的平台不检查、不要求凭证。已选择平台的能力不满足时，说明该平台本次不可用，等待用户修改方案或完成配置；不得擅自切换平台。
 
 1. 收到任何调研需求，先读 `skills/research-planning/SKILL.md`，只澄清和输出 `plan.md`；方案未经用户确认不得采集。
 2. 已确认方案且用户明确允许本次可能产生的费用后，读 `skills/data-collection/SKILL.md`。选 provider 时先读 `providers/registry.json`，只在命中后读对应 provider 文档。

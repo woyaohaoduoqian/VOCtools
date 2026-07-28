@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "reddit-research-mcp": {
+      "type": "http",
+      "url": "https://reddit-research-mcp.fastmcp.app/mcp"
+    }
+  }
+}
