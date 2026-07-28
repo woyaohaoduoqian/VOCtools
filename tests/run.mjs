@@ -7,7 +7,7 @@ import { execFileSync } from "node:child_process";
 const root = resolve(import.meta.dirname, "..");
 const task = join(await mkdtemp(join(tmpdir(), "voc-workbench-")), "fixture");
 await cp(join(root, "tests", "fixture"), task, { recursive: true });
-const script = join(root, "scripts", "voc_workbench.mjs");
+const script = join(root, "agent", "scripts", "voc_workbench.mjs");
 const run = (...args) => execFileSync(process.execPath, [script, ...args], { encoding: "utf8" });
 
 assert.match(run("quality", "--task", task, "--stage", "full"), /可用/);
