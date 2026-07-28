@@ -1,0 +1,918 @@
+[
+  {
+    "slug": "scraping_solutions/instagram-scraper-followers-following-no-cookies",
+    "name": "Instagram Followers & Following Scraper",
+    "platform": "Instagram",
+    "official": false,
+    "allInOne": false,
+    "pricePer1000": 0.7,
+    "fieldSets": {
+      "list": [
+        {
+          "label": "用户名",
+          "path": "username",
+          "tier": "common"
+        },
+        {
+          "label": "全名",
+          "path": "full_name",
+          "tier": "common"
+        },
+        {
+          "label": "是否认证",
+          "path": "is_verified",
+          "tier": "common"
+        },
+        {
+          "label": "是否私密",
+          "path": "is_private",
+          "tier": "common"
+        },
+        {
+          "label": "头像",
+          "path": "profile_pic_url",
+          "tier": "common"
+        },
+        {
+          "label": "用户ID",
+          "path": "id",
+          "tier": "advanced"
+        },
+        {
+          "label": "抓取类型",
+          "path": "type",
+          "tier": "advanced"
+        },
+        {
+          "label": "目标账号",
+          "path": "username_scrape",
+          "tier": "advanced"
+        }
+      ]
+    },
+    "capabilities": [
+      {
+        "start": "account",
+        "content": "followers",
+        "input": {
+          "Account": "$values",
+          "resultsLimit": "$limit",
+          "dataToScrape": "Followers"
+        },
+        "idOf": [
+          "id",
+          "username"
+        ],
+        "fieldsRef": "list"
+      },
+      {
+        "start": "account",
+        "content": "following",
+        "input": {
+          "Account": "$values",
+          "resultsLimit": "$limit",
+          "dataToScrape": "Following"
+        },
+        "idOf": [
+          "id",
+          "username"
+        ],
+        "fieldsRef": "list"
+      }
+    ]
+  },
+  {
+    "slug": "apify/instagram-profile-scraper",
+    "name": "Instagram Profile Scraper",
+    "platform": "Instagram",
+    "official": true,
+    "allInOne": false,
+    "pricePer1000": 2.3,
+    "capabilities": [
+      {
+        "start": "account",
+        "content": "profile",
+        "input": {
+          "usernames": "$values"
+        },
+        "idOf": [
+          "username"
+        ],
+        "fields": [
+          {
+            "label": "达人名",
+            "path": [
+              "fullName",
+              "username"
+            ],
+            "tier": "common"
+          },
+          {
+            "label": "用户名",
+            "path": "username",
+            "tier": "common"
+          },
+          {
+            "label": "主页链接",
+            "path": [
+              "url",
+              "profileUrl"
+            ],
+            "tier": "common"
+          },
+          {
+            "label": "粉丝数",
+            "path": "followersCount",
+            "tier": "common"
+          },
+          {
+            "label": "关注数",
+            "path": "followsCount",
+            "tier": "common"
+          },
+          {
+            "label": "帖子数",
+            "path": "postsCount",
+            "tier": "common"
+          },
+          {
+            "label": "简介",
+            "path": "biography",
+            "tier": "common"
+          },
+          {
+            "label": "是否认证",
+            "path": "verified",
+            "tier": "common"
+          },
+          {
+            "label": "是否私密",
+            "path": "private",
+            "tier": "common"
+          },
+          {
+            "label": "头像",
+            "path": [
+              "profilePicUrl",
+              "profilePicUrlHD"
+            ],
+            "tier": "common"
+          },
+          {
+            "label": "商业账号",
+            "path": "isBusinessAccount",
+            "tier": "advanced"
+          },
+          {
+            "label": "业务分类",
+            "path": "businessCategoryName",
+            "tier": "advanced"
+          },
+          {
+            "label": "外部链接",
+            "path": "externalUrl",
+            "tier": "advanced"
+          },
+          {
+            "label": "高亮数",
+            "path": "highlightReelCount",
+            "tier": "advanced"
+          },
+          {
+            "label": "IGTV数",
+            "path": "igtvVideoCount",
+            "tier": "advanced"
+          },
+          {
+            "label": "高清头像",
+            "path": "profilePicUrlHD",
+            "tier": "advanced"
+          },
+          {
+            "label": "关联账号",
+            "path": "relatedProfiles",
+            "tier": "advanced"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "slug": "apify/instagram-api-scraper",
+    "name": "Instagram API Scraper",
+    "platform": "Instagram",
+    "official": true,
+    "allInOne": false,
+    "pricePer1000": 2,
+    "fieldSets": {
+      "profile": [
+        {
+          "label": "达人名",
+          "path": [
+            "fullName",
+            "username"
+          ],
+          "tier": "common"
+        },
+        {
+          "label": "用户名",
+          "path": "username",
+          "tier": "common"
+        },
+        {
+          "label": "主页链接",
+          "path": [
+            "url",
+            "profileUrl"
+          ],
+          "tier": "common"
+        },
+        {
+          "label": "粉丝数",
+          "path": "followersCount",
+          "tier": "common"
+        },
+        {
+          "label": "关注数",
+          "path": "followsCount",
+          "tier": "common"
+        },
+        {
+          "label": "帖子数",
+          "path": "postsCount",
+          "tier": "common"
+        },
+        {
+          "label": "简介",
+          "path": "biography",
+          "tier": "common"
+        },
+        {
+          "label": "是否认证",
+          "path": "verified",
+          "tier": "common"
+        },
+        {
+          "label": "是否私密",
+          "path": "private",
+          "tier": "common"
+        },
+        {
+          "label": "头像",
+          "path": [
+            "profilePicUrl",
+            "profilePicUrlHD"
+          ],
+          "tier": "common"
+        },
+        {
+          "label": "商业账号",
+          "path": "isBusinessAccount",
+          "tier": "advanced"
+        },
+        {
+          "label": "业务分类",
+          "path": "businessCategoryName",
+          "tier": "advanced"
+        },
+        {
+          "label": "外部链接",
+          "path": "externalUrl",
+          "tier": "advanced"
+        }
+      ],
+      "comment": [
+        {
+          "label": "评论文本",
+          "path": "text",
+          "tier": "common"
+        },
+        {
+          "label": "评论者",
+          "path": [
+            "owner.username",
+            "ownerUsername"
+          ],
+          "tier": "common"
+        },
+        {
+          "label": "点赞数",
+          "path": "likesCount",
+          "tier": "common"
+        },
+        {
+          "label": "回复数",
+          "path": "repliesCount",
+          "tier": "common"
+        },
+        {
+          "label": "时间",
+          "path": [
+            "created_at",
+            "timestamp"
+          ],
+          "tier": "common"
+        },
+        {
+          "label": "来源帖子",
+          "path": [
+            "url",
+            "postUrl"
+          ],
+          "tier": "common"
+        },
+        {
+          "label": "评论者认证",
+          "path": "owner.is_verified",
+          "tier": "advanced"
+        },
+        {
+          "label": "评论者头像",
+          "path": "owner.profile_pic_url",
+          "tier": "advanced"
+        },
+        {
+          "label": "子回复",
+          "path": "replies",
+          "tier": "advanced"
+        },
+        {
+          "label": "评论ID",
+          "path": "id",
+          "tier": "advanced"
+        }
+      ]
+    },
+    "capabilities": [
+      {
+        "start": "keyword",
+        "content": "profile",
+        "input": {
+          "search": "$value",
+          "searchType": "user",
+          "searchLimit": "$limit",
+          "resultsType": "details"
+        },
+        "idOf": [
+          "username"
+        ],
+        "fieldsRef": "profile"
+      },
+      {
+        "start": "postUrl",
+        "content": "comment",
+        "input": {
+          "directUrls": "$values",
+          "resultsType": "comments",
+          "resultsLimit": "$limit"
+        },
+        "idOf": [
+          "id"
+        ],
+        "fieldsRef": "comment"
+      }
+    ]
+  },
+  {
+    "slug": "apify/instagram-hashtag-scraper",
+    "name": "Instagram Hashtag Scraper",
+    "platform": "Instagram",
+    "official": true,
+    "allInOne": false,
+    "pricePer1000": 2.3,
+    "fieldSets": {
+      "post": [
+        {
+          "label": "短码",
+          "path": "shortCode",
+          "tier": "common"
+        },
+        {
+          "label": "帖子链接",
+          "path": "url",
+          "tier": "common"
+        },
+        {
+          "label": "类型",
+          "path": "type",
+          "tier": "common"
+        },
+        {
+          "label": "文案",
+          "path": "caption",
+          "tier": "common"
+        },
+        {
+          "label": "标签",
+          "path": "hashtags",
+          "join": true,
+          "tier": "common"
+        },
+        {
+          "label": "点赞数",
+          "path": "likesCount",
+          "tier": "common"
+        },
+        {
+          "label": "评论数",
+          "path": "commentsCount",
+          "tier": "common"
+        },
+        {
+          "label": "播放量",
+          "path": [
+            "videoViewCount",
+            "videoPlayCount"
+          ],
+          "tier": "common"
+        },
+        {
+          "label": "作者",
+          "path": "ownerUsername",
+          "tier": "common"
+        },
+        {
+          "label": "作者昵称",
+          "path": "ownerFullName",
+          "tier": "common"
+        },
+        {
+          "label": "发布时间",
+          "path": "timestamp",
+          "tier": "common"
+        },
+        {
+          "label": "媒体链接",
+          "path": [
+            "displayUrl",
+            "videoUrl"
+          ],
+          "tier": "common"
+        },
+        {
+          "label": "提及",
+          "path": "mentions",
+          "join": true,
+          "tier": "advanced"
+        },
+        {
+          "label": "地点",
+          "path": "locationName",
+          "tier": "advanced"
+        },
+        {
+          "label": "音乐",
+          "path": "musicInfo.song_name",
+          "tier": "advanced"
+        },
+        {
+          "label": "标记用户",
+          "path": "taggedUsers",
+          "tier": "advanced"
+        },
+        {
+          "label": "最新评论",
+          "path": "latestComments",
+          "tier": "advanced"
+        },
+        {
+          "label": "FB点赞",
+          "path": "fbLikeCount",
+          "tier": "advanced"
+        },
+        {
+          "label": "FB播放",
+          "path": "fbPlayCount",
+          "tier": "advanced"
+        },
+        {
+          "label": "错误",
+          "path": "error",
+          "tier": "debug"
+        },
+        {
+          "label": "错误详情",
+          "path": "errorDescription",
+          "tier": "debug"
+        }
+      ],
+      "reel": [
+        {
+          "label": "短码",
+          "path": "shortCode",
+          "tier": "common"
+        },
+        {
+          "label": "视频链接",
+          "path": [
+            "videoUrl",
+            "url"
+          ],
+          "tier": "common"
+        },
+        {
+          "label": "文案",
+          "path": "caption",
+          "tier": "common"
+        },
+        {
+          "label": "作者",
+          "path": "ownerUsername",
+          "tier": "common"
+        },
+        {
+          "label": "点赞数",
+          "path": "likesCount",
+          "tier": "common"
+        },
+        {
+          "label": "评论数",
+          "path": "commentsCount",
+          "tier": "common"
+        },
+        {
+          "label": "播放量",
+          "path": [
+            "videoPlayCount",
+            "videoViewCount",
+            "igPlayCount"
+          ],
+          "tier": "common"
+        },
+        {
+          "label": "时长(秒)",
+          "path": "videoDuration",
+          "tier": "common"
+        },
+        {
+          "label": "音乐",
+          "path": "musicInfo.song_name",
+          "tier": "common"
+        },
+        {
+          "label": "发布时间",
+          "path": "timestamp",
+          "tier": "common"
+        },
+        {
+          "label": "标签",
+          "path": "hashtags",
+          "join": true,
+          "tier": "advanced"
+        },
+        {
+          "label": "音频",
+          "path": "audioUrl",
+          "tier": "advanced"
+        },
+        {
+          "label": "错误",
+          "path": "error",
+          "tier": "debug"
+        }
+      ]
+    },
+    "capabilities": [
+      {
+        "start": "hashtag",
+        "content": "post",
+        "input": {
+          "hashtags": "$tokens",
+          "resultsType": "posts",
+          "resultsLimit": "$limit",
+          "proxy": {
+            "useApifyProxy": true
+          }
+        },
+        "idOf": [
+          "id",
+          "shortCode"
+        ],
+        "fieldsRef": "post",
+        "excludeFields": [
+          "latestComments"
+        ]
+      },
+      {
+        "start": "hashtag",
+        "content": "reel",
+        "input": {
+          "hashtags": "$tokens",
+          "resultsType": "reels",
+          "resultsLimit": "$limit",
+          "proxy": {
+            "useApifyProxy": true
+          }
+        },
+        "idOf": [
+          "id",
+          "shortCode"
+        ],
+        "fieldsRef": "reel"
+      },
+      {
+        "start": "keyword",
+        "content": "post",
+        "input": {
+          "hashtags": "$tokens",
+          "resultsType": "posts",
+          "resultsLimit": "$limit",
+          "keywordSearch": true,
+          "proxy": {
+            "useApifyProxy": true
+          }
+        },
+        "idOf": [
+          "id",
+          "shortCode"
+        ],
+        "fieldsRef": "post"
+      },
+      {
+        "start": "keyword",
+        "content": "reel",
+        "input": {
+          "hashtags": "$tokens",
+          "resultsType": "reels",
+          "resultsLimit": "$limit",
+          "keywordSearch": true,
+          "proxy": {
+            "useApifyProxy": true
+          }
+        },
+        "idOf": [
+          "id",
+          "shortCode"
+        ],
+        "fieldsRef": "reel"
+      }
+    ]
+  },
+  {
+    "slug": "apify/instagram-post-scraper",
+    "name": "Instagram Post Scraper",
+    "platform": "Instagram",
+    "official": true,
+    "allInOne": false,
+    "pricePer1000": 1.5,
+    "fieldSets": {
+      "post": [
+        {
+          "label": "短码",
+          "path": "shortCode",
+          "tier": "common"
+        },
+        {
+          "label": "帖子链接",
+          "path": "url",
+          "tier": "common"
+        },
+        {
+          "label": "类型",
+          "path": "type",
+          "tier": "common"
+        },
+        {
+          "label": "文案",
+          "path": "caption",
+          "tier": "common"
+        },
+        {
+          "label": "标签",
+          "path": "hashtags",
+          "join": true,
+          "tier": "common"
+        },
+        {
+          "label": "点赞数",
+          "path": "likesCount",
+          "tier": "common"
+        },
+        {
+          "label": "评论数",
+          "path": "commentsCount",
+          "tier": "common"
+        },
+        {
+          "label": "播放量",
+          "path": [
+            "videoViewCount",
+            "videoPlayCount"
+          ],
+          "tier": "common"
+        },
+        {
+          "label": "作者",
+          "path": "ownerUsername",
+          "tier": "common"
+        },
+        {
+          "label": "作者昵称",
+          "path": "ownerFullName",
+          "tier": "common"
+        },
+        {
+          "label": "发布时间",
+          "path": "timestamp",
+          "tier": "common"
+        },
+        {
+          "label": "媒体链接",
+          "path": [
+            "displayUrl",
+            "videoUrl"
+          ],
+          "tier": "common"
+        },
+        {
+          "label": "是否置顶",
+          "path": "isPinned",
+          "tier": "advanced"
+        },
+        {
+          "label": "提及",
+          "path": "mentions",
+          "join": true,
+          "tier": "advanced"
+        },
+        {
+          "label": "地点",
+          "path": "locationName",
+          "tier": "advanced"
+        },
+        {
+          "label": "最新评论",
+          "path": "latestComments",
+          "tier": "advanced"
+        },
+        {
+          "label": "首条评论",
+          "path": "firstComment",
+          "tier": "advanced"
+        },
+        {
+          "label": "标记用户",
+          "path": "taggedUsers",
+          "tier": "advanced"
+        },
+        {
+          "label": "音乐",
+          "path": "musicInfo.song_name",
+          "tier": "advanced"
+        },
+        {
+          "label": "错误",
+          "path": "error",
+          "tier": "debug"
+        },
+        {
+          "label": "错误详情",
+          "path": "errorDescription",
+          "tier": "debug"
+        },
+        {
+          "label": "请求报错",
+          "path": "requestErrorMessages",
+          "tier": "debug"
+        }
+      ],
+      "reel": [
+        {
+          "label": "短码",
+          "path": "shortCode",
+          "tier": "common"
+        },
+        {
+          "label": "视频链接",
+          "path": [
+            "videoUrl",
+            "url"
+          ],
+          "tier": "common"
+        },
+        {
+          "label": "文案",
+          "path": "caption",
+          "tier": "common"
+        },
+        {
+          "label": "作者",
+          "path": "ownerUsername",
+          "tier": "common"
+        },
+        {
+          "label": "点赞数",
+          "path": "likesCount",
+          "tier": "common"
+        },
+        {
+          "label": "评论数",
+          "path": "commentsCount",
+          "tier": "common"
+        },
+        {
+          "label": "播放量",
+          "path": [
+            "videoPlayCount",
+            "videoViewCount",
+            "igPlayCount"
+          ],
+          "tier": "common"
+        },
+        {
+          "label": "时长(秒)",
+          "path": "videoDuration",
+          "tier": "common"
+        },
+        {
+          "label": "音乐",
+          "path": "musicInfo.song_name",
+          "tier": "common"
+        },
+        {
+          "label": "发布时间",
+          "path": "timestamp",
+          "tier": "common"
+        },
+        {
+          "label": "标签",
+          "path": "hashtags",
+          "join": true,
+          "tier": "advanced"
+        },
+        {
+          "label": "音频",
+          "path": "audioUrl",
+          "tier": "advanced"
+        },
+        {
+          "label": "错误",
+          "path": "error",
+          "tier": "debug"
+        }
+      ]
+    },
+    "capabilities": [
+      {
+        "start": "account",
+        "content": "post",
+        "input": {
+          "username": "$values",
+          "resultsLimit": "$limit",
+          "dataDetailLevel": "detailedData",
+          "proxy": {
+            "useApifyProxy": true
+          }
+        },
+        "idOf": [
+          "id",
+          "shortCode"
+        ],
+        "fieldsRef": "post"
+      },
+      {
+        "start": "account",
+        "content": "reel",
+        "input": {
+          "username": "$values",
+          "resultsLimit": "$limit",
+          "dataDetailLevel": "detailedData",
+          "proxy": {
+            "useApifyProxy": true
+          }
+        },
+        "idOf": [
+          "id",
+          "shortCode"
+        ],
+        "fieldsRef": "reel"
+      },
+      {
+        "start": "postUrl",
+        "content": "post",
+        "input": {
+          "username": "$values",
+          "dataDetailLevel": "detailedData"
+        },
+        "idOf": [
+          "id",
+          "shortCode"
+        ],
+        "fieldsRef": "post"
+      },
+      {
+        "start": "postUrl",
+        "content": "reel",
+        "input": {
+          "username": "$values",
+          "dataDetailLevel": "detailedData"
+        },
+        "idOf": [
+          "id",
+          "shortCode"
+        ],
+        "fieldsRef": "reel"
+      }
+    ]
+  }
+]

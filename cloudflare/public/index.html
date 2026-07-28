@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>VOC Research Agent</title>
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body>
+    <header><div><p class="eyebrow">EVIDENCE-LED VOC</p><h1>VOC 调研智能体</h1></div><button class="quiet" id="settings">设置访问口令</button></header>
+    <main>
+      <section class="hero"><div><p class="eyebrow">从模糊问题，到可追溯的研究计划</p><h2>先规划，再采集；先验证，再结论。</h2><p>这个工作台不会把公开社媒片段伪装成“市场事实”。每一步都留下可交付的证据链。</p></div><ol class="steps"><li class="active">1. 规划</li><li>2. 用户确认</li><li>3. 试跑与质检</li><li>4. 全量与报告</li></ol></section>
+      <section class="panel"><h2>创建研究方案</h2><p class="muted">填写已知信息即可。缺失项会写入待确认清单，不会被自行猜测。</p>
+        <form id="plan-form">
+          <div class="grid">
+            <label>产品/品类*<input name="subject" placeholder="例如：便携榨汁杯（不含耗材）" required /></label>
+            <label>目标用户<textarea name="audience" placeholder="例如：欧美 25–40 岁、通勤与健身人群"></textarea></label>
+            <label>决策目标*<textarea name="goal" placeholder="例如：决定下一代产品的优先改进项" required></textarea></label>
+            <label>研究问题*<textarea name="question" placeholder="例如：用户在清洁、漏液和携带上遇到哪些问题？" required></textarea></label>
+            <label>市场与语言<input name="market" placeholder="例如：美国/英语" /></label>
+            <label>时间窗<input name="timeWindow" placeholder="例如：近 12 个月" /></label>
+            <label>候选平台<input name="platforms" placeholder="例如：Instagram；Reddit（待接入）" /></label>
+            <label>预算上限<input name="budget" placeholder="例如：USD 30" /></label>
+            <label>计划交付<input name="deliverable" placeholder="例如：候选痛点清单 + 报告" /></label>
+            <label>已知种子<textarea name="seeds" placeholder="竞品账号、标签、关键词或帖子链接"></textarea></label>
+          </div>
+          <button class="primary" type="submit">生成待确认方案</button><span id="form-status" role="status"></span>
+        </form>
+      </section>
+      <section class="panel hidden" id="result"><div class="result-head"><h2>调研方案（待确认）</h2><div><button class="quiet" id="download-plan">下载 plan.md</button><button class="primary" id="confirm-plan">我已确认方案</button></div></div><pre id="plan-output"></pre><p class="notice">确认方案不等于授权付费采集。试跑及全量采集仍须分别看到范围和预估费用后，由研究负责人明确确认。</p></section>
+      <section class="panel hidden" id="next"><h2>下一步：受控采集</h2><p>将下载的方案交给已配置凭证的 VOC 研究服务。服务必须先试跑、写入 manifest 和原始数据、执行质量闸门；任何失败、超时或质量不达标都应停止等待，不得自动重试或换源。</p><button class="quiet" id="reset">开始新的研究</button></section>
+    </main>
+    <footer>不采集登录后的私人内容；不在没有数据时输出调研结论；不把 API Token 写入任务文件。</footer>
+    <dialog id="settings-dialog"><form method="dialog"><h2>访问口令</h2><p>这是部署管理员设置的共享口令，用于防止公开页面滥用模型额度。口令只保存在当前浏览器。</p><label>口令<input id="access-key" type="password" autocomplete="current-password" /></label><div class="dialog-actions"><button value="cancel" class="quiet">取消</button><button id="save-key" value="default" class="primary">保存</button></div></form></dialog>
+    <script src="/app.js"></script>
+  </body>
+</html>

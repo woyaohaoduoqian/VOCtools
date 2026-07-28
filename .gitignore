@@ -1,0 +1,7 @@
+# local credentials
+cloudflare/.dev.vars
+cloudflare/.wrangler/
+cloudflare/node_modules/
+
+# local research exports
+research/
