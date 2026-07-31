@@ -1,71 +1,68 @@
 ---
-provider: reddit-research-mcp
-type: mcp_http_via_remote
-status: 已接入（免费、分批质量闸门）
+provider_id: reddit-research-mcp
+type: mcp
+transport: streamable_http
+status: integrated
 platforms: [reddit]
+content_models: [threaded-discussion]
 ---
 
-# Provider：Reddit Research MCP（Dialog 托管服务）
+# Reddit Research MCP
 
-## 1. 接入边界
+## 能力与缺口
 
-- MCP 端点：`https://reddit-research-mcp.fastmcp.app/mcp`
-- 认证：Descope OAuth2。首次连接必须由用户在 Codex 完成授权；不要索取、复述或写入 OAuth token。
-- 数据边界：仅公开 Reddit 数据；服务方提供语义社区发现、帖子、评论树和链接。
-- 覆盖边界：服务方声明索引约 20,000 个活跃 subreddit、每周更新。它不是整个 Reddit 的全量数据库；语义发现结果只能作为取样入口。
-- 费用：服务方当前声明可免费独立使用；但免费状态、配额和返回字段只以**本次试跑实测**为准，不得把声明当作保证。
+支持语义发现社区、社区内搜索、主题列表、批量主题和评论树。索引覆盖不是整个 Reddit；时间过滤、评论树完整度、配额和返回字段以当前任务运行时 Schema 与响应为准。
 
-## 2. 允许操作与权限
+## 鉴权和运行条件
 
-### 默认允许（只读研究）
+使用第三方托管 MCP 和 OAuth。当前任务必须实际暴露该 MCP 的操作，首次连接需完成授权。不要索取、复述或保存 token。
 
-1. `discover_operations()`：读取能力与推荐流程。
-2. `get_operation_schema()`：读取某操作参数和示例。
-3. `execute_operation()` 仅可执行以下 Reddit 只读操作：
-   - `discover_subreddits`
-   - `search_subreddit`
-   - `fetch_posts`
-   - `fetch_multiple`
-   - `fetch_comments`
+registry 中的 `integrated` 表示核心已维护正式契约，不代表所有运行环境或当前任务已连接。
 
-### 默认禁止（会持久化改变远端状态）
+端点和安装方式只在部署配置与 `docs/CODEX_SETUP.md` 维护。
 
-- `create_feed`
-- `update_feed`
-- `delete_feed`
+## 调用契约
 
-只有用户明确说“创建/修改/删除 Reddit 监测 Feed”，才可先展示变更对象和影响，再执行；不得为方便后续研究而自动建 Feed。
+先发现可用操作，再读取目标操作 Schema，最后执行只读研究操作。允许的能力类别是社区发现、社区搜索、主题获取和评论获取。
 
-## 3. 调用顺序
+持久化 Feed 的创建、修改和删除不属于普通研究绑定，只有用户明确要求监测 Feed 时才能另行授权。
 
-1. 先读本文件；方案必须已确认。
-2. 首次 OAuth 前，向用户说明：使用第三方 Dialog MCP、将访问公开 Reddit 数据、索引覆盖有限；等待明确确认。OAuth 已完成且方案已确认后，不因免费只读采集再索取一次“全量确认”。
-3. 调用 `discover_operations()`，再对要用的操作调用 `get_operation_schema()`；这是**无数据 schema 预检**，不得猜参数名。
-4. 按方案直接开始分批采集：`discover_subreddits` → 1–3 个社区的 `search_subreddit` / `fetch_posts` → 高相关帖子 `fetch_comments`。首批是正式样本的一部分，不是为收费而拆出的试跑。
-5. 每次响应原样落为 `raw/{任务id}-reddit-*.json`；不得只保留模型摘要。
-6. 每批映射为 `processed/{任务id}-reddit-{content}.csv`，立即执行质量检查：字段有值率、溯源字段、相关性、时间窗、社区集中度与重复情况。
-7. 质量正常则继续下一批，直到达到方案样本量或探索式饱和；质量异常、schema 不匹配、配额信号或时间过滤失效则停止并报告。仅当要扩大范围、改变种子/时间窗、转为付费替代工具或建 Feed 时再要求用户确认。
+每次调用的真实操作名、参数、参数哈希、请求 ID、响应位置、响应 SHA-256 和状态写入 `collection/requests.jsonl`。原始响应写入 `collection/raw/`。
 
-## 4. 标准化输出
+## 代价、配额、并发与超时
 
-每行追加 `采集时间`（本次 MCP 响应完成时间）。字段名按下列映射；上游字段在实测 schema 中名称不同则记录真实路径，不能臆造。
+- 金钱：服务方当前声明免费，实际配额和状态以运行时为准。
+- 时间：按首批实测。
+- 账号风险：不需要用户 Reddit 凭证；需要服务方 OAuth。
+- 合规：仅公开数据，受服务条款、授权范围和可用性约束。
+- 并发：首批串行；稳定后只使用很小并发并写入运行清单。
 
-| 内容 | 最低字段 | 额外字段 |
-|---|---|---|
-| 帖子 | 原始链接、发布时间、采集时间、标题、正文、作者、社区 | 帖子 ID、分数、评论数、是否置顶、NSFW 标记 |
-| 评论 | 原始链接、发布时间、采集时间、评论文本、作者、社区、来源帖子链接 | 评论 ID、分数、父评论 ID、深度 |
+## 字段映射
 
-- 任何缺失字段保留空值，不用 `0` 或“无”补齐。
-- 去重：帖子按帖子 ID；评论按评论 ID。缺 ID 时不自行按文本去重，交由 quality-check 报告。
-- 确保评论行可追溯到原始帖子链接；无法构造原始链接的行不得进入结论计数。
+| 标准字段 | 运行时来源 |
+|---|---|
+| `record_id` | 主题或评论稳定 ID |
+| `parent_record_id` | 评论父记录；主题为 `not_applicable` |
+| `entity_type` | `thread` / `reply` |
+| `text` | 标题与正文或评论文本 |
+| `published_at` | 平台发布时间 |
+| `permalink` | 可回访的永久链接 |
+| `author` | 公开作者标识 |
+| `source_location` | subreddit |
+| `platform__reddit__score` | Reddit score |
+| `platform__reddit__subreddit` | subreddit |
+| `platform__reddit__is_stickied` | 置顶状态 |
 
-## 5. 分批质量闸门与失败处理
+真实字段路径必须从运行时 Schema 和首批响应确认，不能凭文档猜测。缺失值保留为空字符串。
 
-- 完整原始链接、发布时间、采集时间是帖子/评论结论的必要溯源字段。
-- 社区发现仅用于确定取样社区，不得把“检索排名”写作声量或市场份额。
-- 首批先确认真实字段路径和最小溯源字段；通过后继续累计样本，最终按 quality-check 的全量闸门判定是否可分析。
-- OAuth 失败、Schema 变化、返回为空、配额限制或 MCP 超时：停止，不自动重试、不自动切换 Apify；保留已完成原始响应，报告现状并等待用户选择。
+## 错误映射
 
-## 6. 报告限制（必须原样传递）
-
-> 本次 Reddit 样本来自 Reddit Research MCP 的公开数据索引与指定社区/查询，不覆盖整个 Reddit。语义社区发现结果仅用于取样；本报告中的计数和发现仅代表本次可溯源样本，不能外推为市场总体用户比例或共识。
+| Provider 情况 | 通用错误 |
+|---|---|
+| OAuth 或授权失败 | `authentication_failed` |
+| MCP 超时 | `timeout` |
+| 空响应 | `empty_result` |
+| 配额或限流 | `rate_limited` |
+| 字段或 Schema 变化 | `schema_changed` |
+| 连接失败 | `transport_failed` |
+| 请求终态无法确认 | `unknown_state` |

@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": ["schema_version", "status", "bindings"],
+  "properties": {
+    "schema_version": { "const": 2 },
+    "status": { "enum": ["pending", "executable", "partially_executable", "not_executable"] },
+    "bindings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["requirement_id", "provider_id", "configured", "operations_exposed", "authorization_status", "operation_names", "missing_capabilities", "impact", "decision"],
+        "properties": {
+          "requirement_id": { "type": "string" },
+          "provider_id": { "type": "string" },
+          "configured": { "type": "boolean" },
+          "operations_exposed": { "type": "boolean" },
+          "authorization_status": { "enum": ["not_required", "pending", "authorized", "failed", "unknown"] },
+          "operation_names": { "type": "array", "items": { "type": "string" } },
+          "missing_capabilities": { "type": "array", "items": { "type": "string" } },
+          "impact": { "type": "string" },
+          "decision": { "enum": ["usable", "unusable"] }
+        }
+      }
+    }
+  }
+}

@@ -13,6 +13,5 @@ jobs:
         with:
           node-version: 22
       - run: node tests/run.mjs
-      - run: node tests/plugin-contract.mjs
-      - shell: pwsh
-        run: ./agent/scripts/sync-plugin.ps1 -Check
+      - run: node tests/codex-integration.mjs
+      - run: git diff --check

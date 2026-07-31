@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["request_id", "run_id", "query_id", "provider_id", "operation", "parameters_sha256", "response_sha256", "status", "started_at", "finished_at", "raw_ref", "error_type", "resume_from_request_id"],
+  "properties": {
+    "request_id": { "type": "string", "pattern": "^REQ-" },
+    "run_id": { "type": "string", "pattern": "^RUN-" },
+    "query_id": { "type": "string", "pattern": "^Q-" },
+    "provider_id": { "type": "string" },
+    "operation": { "type": "string" },
+    "parameters_sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "response_sha256": { "type": ["string", "null"], "pattern": "^[a-f0-9]{64}$" },
+    "status": { "enum": ["planned", "in_progress", "succeeded", "failed", "unknown", "cancelled"] },
+    "started_at": { "type": ["string", "null"], "format": "date-time" },
+    "finished_at": { "type": ["string", "null"], "format": "date-time" },
+    "raw_ref": { "type": ["string", "null"] },
+    "error_type": { "type": ["string", "null"] },
+    "resume_from_request_id": { "type": ["string", "null"] }
+  }
+}

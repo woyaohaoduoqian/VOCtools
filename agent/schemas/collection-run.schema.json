@@ -1,0 +1,54 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "run_id", "research_id", "provider_bindings", "status", "approved_scope", "observed_checks", "request_log", "raw_root", "started_at", "finished_at", "errors"],
+  "properties": {
+    "schema_version": { "const": 2 },
+    "run_id": { "type": "string", "pattern": "^RUN-" },
+    "research_id": { "type": "string" },
+    "provider_bindings": { "type": "array", "items": { "type": "string" } },
+    "status": { "enum": ["planned", "in_progress", "succeeded", "failed", "unknown", "cancelled"] },
+    "approved_scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["approval_ids", "plan_sha256", "query_plan_sha256", "provider_binding_sha256", "cost_limit", "currency", "expansion_boundary"],
+      "properties": {
+        "approval_ids": { "type": "array", "items": { "type": "string", "pattern": "^APPROVAL-" } },
+        "plan_sha256": { "type": "string" },
+        "query_plan_sha256": { "type": "string" },
+        "provider_binding_sha256": { "type": "string" },
+        "cost_limit": { "type": ["number", "null"] },
+        "currency": { "type": ["string", "null"] },
+        "expansion_boundary": { "type": "string" }
+      }
+    },
+    "observed_checks": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["parameters_effective", "relevance_reviewed", "anomalies_reviewed", "platform_bias_reviewed"],
+      "properties": {
+        "parameters_effective": { "$ref": "#/$defs/observed_check" },
+        "relevance_reviewed": { "$ref": "#/$defs/observed_check" },
+        "anomalies_reviewed": { "$ref": "#/$defs/observed_check" },
+        "platform_bias_reviewed": { "$ref": "#/$defs/observed_check" }
+      }
+    },
+    "request_log": { "type": "string" },
+    "raw_root": { "type": "string" },
+    "started_at": { "type": ["string", "null"], "format": "date-time" },
+    "finished_at": { "type": ["string", "null"], "format": "date-time" },
+    "errors": { "type": "array", "items": { "type": "object" } }
+  },
+  "$defs": {
+    "observed_check": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "notes"],
+      "properties": {
+        "status": { "enum": ["not_checked", "passed", "passed_with_limitations", "failed"] },
+        "notes": { "type": "string" }
+      }
+    }
+  }
+}
