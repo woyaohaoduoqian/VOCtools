@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": ["schema_version", "version", "generated_at", "profile", "non_applicable_files", "files"],
+  "properties": {
+    "schema_version": { "const": 2 },
+    "version": { "type": "string" },
+    "generated_at": { "type": "string" },
+    "profile": { "enum": ["full_insight", "dataset_only"] },
+    "non_applicable_files": { "type": "array", "items": { "type": "string" } },
+    "files": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["path", "sha256"],
+        "properties": {
+          "path": { "type": "string" },
+          "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+          "rows": { "type": "integer" }
+        }
+      }
+    }
+  }
+}

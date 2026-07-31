@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": ["schema_version", "checked_at", "decision", "unit_count", "included_unit_count", "duplicate_unit_ids", "duplicate_primary_records", "invalid_primary_codes", "invalid_evidence_links", "missing_primary_links", "quote_mismatches", "uncategorized_rate", "audit_required", "audit_completed", "audit_disagreements", "audit_coverage", "limitations", "next_step"],
+  "properties": {
+    "schema_version": { "const": 2 },
+    "checked_at": { "type": "string", "format": "date-time" },
+    "decision": { "enum": ["usable", "usable_with_limitations", "unusable"] },
+    "unit_count": { "type": "integer", "minimum": 0 },
+    "included_unit_count": { "type": "integer", "minimum": 0 },
+    "duplicate_unit_ids": { "type": "array", "items": { "type": "string" } },
+    "duplicate_primary_records": { "type": "array", "items": { "type": "string" } },
+    "invalid_primary_codes": { "type": "array", "items": { "type": "string" } },
+    "invalid_evidence_links": { "type": "array", "items": { "type": "string" } },
+    "missing_primary_links": { "type": "array", "items": { "type": "string" } },
+    "quote_mismatches": { "type": "array", "items": { "type": "string" } },
+    "uncategorized_rate": { "type": "number", "minimum": 0 },
+    "audit_required": { "type": "integer", "minimum": 0 },
+    "audit_completed": { "type": "integer", "minimum": 0 },
+    "audit_disagreements": { "type": "integer", "minimum": 0 },
+    "audit_coverage": { "type": "number", "minimum": 0 },
+    "limitations": { "type": "array", "items": { "type": "string" } },
+    "next_step": { "type": "string" }
+  }
+}

@@ -1,0 +1,126 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "VOC research controller v2",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "research_id", "title", "current_stage", "status", "mode", "platform_scope", "content_models", "research_questions", "files", "gates", "sample_target", "approvals", "stage_history", "limitations"],
+  "properties": {
+    "schema_version": { "const": 2 },
+    "research_id": { "type": "string", "pattern": "^RESEARCH-[A-Za-z0-9][A-Za-z0-9._-]*$" },
+    "title": { "type": "string", "minLength": 1 },
+    "current_stage": { "enum": ["intake", "design", "capability", "collection", "collection_quality", "analysis", "analysis_quality", "synthesis", "delivery"] },
+    "status": { "enum": ["draft", "awaiting_confirmation", "authorized", "running", "blocked", "completed", "cancelled"] },
+    "mode": { "enum": ["unknown", "exploratory", "evaluative"] },
+    "platform_scope": { "type": "array", "items": { "type": "string" }, "uniqueItems": true },
+    "content_models": { "type": "array", "items": { "type": "string" }, "uniqueItems": true },
+    "research_questions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["research_question_id", "question", "status"],
+        "properties": {
+          "research_question_id": { "type": "string", "pattern": "^RQ-" },
+          "question": { "type": "string", "minLength": 1 },
+          "status": { "enum": ["active", "retired"] }
+        }
+      }
+    },
+    "files": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["intake", "plan", "source_requirements", "query_plan", "provider_binding", "collection_run"],
+      "properties": {
+        "intake": { "type": "string" },
+        "plan": { "type": "string" },
+        "source_requirements": { "type": "string" },
+        "query_plan": { "type": "string" },
+        "provider_binding": { "type": "string" },
+        "collection_run": { "type": "string" }
+      }
+    },
+    "gates": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["intake", "design", "capability", "collection_quality", "analysis_quality", "delivery"],
+      "properties": {
+        "intake": { "$ref": "#/$defs/gate" },
+        "design": { "$ref": "#/$defs/gate" },
+        "capability": { "$ref": "#/$defs/gate" },
+        "collection_quality": { "$ref": "#/$defs/gate" },
+        "analysis_quality": { "$ref": "#/$defs/gate" },
+        "delivery": { "$ref": "#/$defs/gate" }
+      }
+    },
+    "sample_target": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["analysis_unit", "target", "current_qualified_count", "inclusion_rules_locked", "approved_expansion_boundary", "scope_exhausted"],
+      "properties": {
+        "analysis_unit": { "type": "string" },
+        "target": { "type": ["integer", "null"], "minimum": 1 },
+        "current_qualified_count": { "type": "integer", "minimum": 0 },
+        "inclusion_rules_locked": { "type": "boolean" },
+        "approved_expansion_boundary": { "type": "string" },
+        "scope_exhausted": { "type": "boolean" }
+      }
+    },
+    "approvals": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["approval_id", "scope_type", "scope_sha256", "approved_at", "status", "scope_summary"],
+        "properties": {
+          "approval_id": { "type": "string", "pattern": "^APPROVAL-" },
+          "scope_type": { "enum": ["intake", "plan", "query_plan", "provider_binding", "collection_scope", "scope_change"] },
+          "scope_sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+          "approved_at": { "type": "string", "format": "date-time" },
+          "status": { "enum": ["approved", "revoked"] },
+          "scope_summary": { "type": "string" },
+          "cost_limit": { "type": ["number", "null"], "minimum": 0 },
+          "currency": { "type": ["string", "null"] }
+        }
+      }
+    },
+    "stage_history": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["stage", "status", "at", "reason"],
+        "properties": {
+          "stage": { "enum": ["intake", "design", "capability", "collection", "collection_quality", "analysis", "analysis_quality", "synthesis", "delivery"] },
+          "status": { "enum": ["entered", "passed", "returned", "blocked", "completed"] },
+          "at": { "type": "string", "format": "date-time" },
+          "reason": { "type": "string" }
+        }
+      }
+    },
+    "limitations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["limitation_id", "statement", "applies_to", "status"],
+        "properties": {
+          "limitation_id": { "type": "string", "pattern": "^L-" },
+          "statement": { "type": "string" },
+          "applies_to": { "type": "array", "items": { "type": "string" } },
+          "status": { "enum": ["open", "resolved"] }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "gate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "result_file"],
+      "properties": {
+        "status": { "enum": ["not_started", "pending", "passed", "passed_with_limitations", "failed"] },
+        "result_file": { "type": "string" }
+      }
+    }
+  }
+}

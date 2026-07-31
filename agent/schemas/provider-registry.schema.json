@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": ["schema_version", "providers"],
+  "properties": {
+    "schema_version": { "const": 2 },
+    "providers": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["provider_id", "type", "status", "doc", "platforms", "content_models", "capabilities"],
+        "properties": {
+          "provider_id": { "type": "string" },
+          "type": { "enum": ["rest_api", "mcp", "self_hosted", "browser"] },
+          "status": { "enum": ["integrated", "candidate", "evaluation_required", "disabled"] },
+          "doc": { "type": "string" },
+          "platforms": { "type": "array", "items": { "type": "string" } },
+          "content_models": { "type": "array", "items": { "type": "string" } },
+          "capabilities": { "type": "object" }
+        }
+      }
+    }
+  }
+}

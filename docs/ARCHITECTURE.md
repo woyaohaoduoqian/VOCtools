@@ -1,22 +1,26 @@
-# 部署能力契约
+# VOCtools v2 架构
 
-## GitHub 中保存的资产
+`agent/` 是完整、平台无关的智能体；运行环境通过 `integrations/` 接入。适配层可以添加清单、前置元数据、连接配置和打包方式，但不能复制维护或改写研究规则。
 
-- `agent/`：流程、skills、平台画像、Apify 与 Reddit provider 规格、工作台脚本。
-- `.codex-plugin/plugin.json`：插件清单。
-- `.mcp.json`：Reddit MCP 连接定义。
-- `tests/`：回归与部署契约检查。
+智能体内部有六层：研究框架、内容模型、平台画像、Provider、执行与标准化、分析与交付。信息链为 `RQ → Q → R → U → E → F → I → H`，每类核心事实只有一个权威文件。
 
-## 每个部署环境必须具备
+应保留在核心中的内容：
 
-1. **Apify**：可发起外部 HTTPS API 请求，并通过环境安全配置 `APIFY_TOKEN`；不需要 Apify 专用插件。Token 不提交、不回显、不写入任务文件。
-2. **Reddit**：能启动 `.mcp.json` 中的 MCP，并在首次使用时完成 OAuth。
-3. **运行条件**：支持 Codex 插件、Node.js 与网络访问 MCP/Apify。
+- 九阶段固定流程、两级质量闸门和退回规则；
+- 来源侦察、查询设计、逐轮筛选、失败处理、断点续跑；
+- 内容模型、平台偏差、Provider 能力与标准字段映射；
+- 编码一致性、证据分层、计数口径、反例和措辞边界；
+- Schema、模板、工作台和平台无关交付合同。
 
-这三项中任一缺失，环境即不支持本插件。不得安装后只关闭 Instagram 或 Reddit 分支；否则同一份流程将不再具备承诺的跨平台能力。
+只属于接入层的内容：
 
-每个调研任务开始前还要检查：`APIFY_TOKEN` 已安全注入、Reddit MCP 工具已注入。首次触发 Reddit 时，要求用户完成 OAuth；预检失败即停止，不以单平台替代。
+- Codex `SKILL.md` frontmatter、插件 manifest、MCP 连接配置和安装说明；
+- 其他运行环境未来需要的入口格式、清单和部署脚本。
 
-## 可迁移边界
+不进入运行核心的内容：
 
-GitHub 可让任意新设备获得相同的流程、skills、MCP 定义与测试；`APIFY_TOKEN` 和 OAuth 会话属于设备/环境的私密运行态，必须重新配置或授权。
+- 生成的安装包和同步副本；
+- 历史原型、候选 Provider 的大段外部规格；
+- 特定旧任务数据、环境缓存和重复维护的字段表。
+
+当前正式平台画像和 Provider 只有 Reddit。未经校准的平台画像与候选 Provider 保存在 `archive/`，不参与运行。新增平台先补平台画像和内容模型，新增 Provider 只补适配与 registry。

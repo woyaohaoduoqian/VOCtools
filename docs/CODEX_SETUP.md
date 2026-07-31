@@ -1,27 +1,22 @@
-# 安装与调试 VOC 调研插件
+# Codex 接入与验收
 
-## 安装
+本目录说明如何从通用智能体源码生成并验收 Codex 接入包。
 
-1. 克隆仓库：`git clone https://github.com/woyaohaoduoqian/VOCtools.git`
-2. 在仓库根目录注册本地 marketplace：`codex plugin marketplace add <仓库绝对路径>`。
-3. 安装插件：`codex plugin add voc-research-agent@voctools`。
-4. 新建一个 Codex 任务；首次需要 Reddit 数据时，在该任务内完成 MCP 的 OAuth 授权。
-
-插件的 MCP 配置位于 `.mcp.json`。它是 Codex 插件的运行配置，不能通过仅提供 GitHub URL 的个人 GPT 自动执行。
-
-## 调试顺序
-
-1. 先运行本地工作台回归测试：`node tests/run.mjs` 和 `node tests/plugin-contract.mjs`。
-2. 新建 Codex 任务，发送 [`EVALS.md`](EVALS.md) 中的 P1–P8；P9 只在 Reddit MCP 已授权时执行。
-3. 预期流程必须是：澄清 → 待确认方案 → 用户确认与成本确认 → 采集/质检 → 编码/报告。任一闸门不通过都要停止，不能自动补救。
-
-## 维护发布副本
-
-只编辑仓库根目录的源文件。改动后运行：
+1. 运行 `integrations/codex/package.ps1`，生成 `dist/codex-marketplace/`。
+2. 将 `dist/codex-marketplace/` 注册为本地 marketplace。
+3. 安装 `voc-research-agent@voctools`。
+4. 新建 Codex 任务，确认主 skill 能读取 `workflows/`、Schema 和 Provider registry。
+5. 首次执行 Reddit 采集时完成 Reddit Research MCP 授权。
 
 ```powershell
-./agent/scripts/sync-plugin.ps1
-./agent/scripts/sync-plugin.ps1 -Check
+codex plugin marketplace add <VOCtools 仓库绝对路径>\dist\codex-marketplace
+codex plugin add voc-research-agent@voctools
 ```
 
-前一个命令将 `agent/` 源码复制到 `plugins/voc-research-agent/skills/voc-research-agent/`；后一个命令验证两边的文件列表和内容哈希完全一致。
+如果旧版本曾把仓库根目录注册为 `voctools`，先执行 `codex plugin marketplace remove voctools`，再注册上面的生成目录，避免 Codex 在缺少 marketplace manifest 的仓库根目录上失败。
+
+每次打包都会生成新的 `0.2.0+codex.<UTC时间>` 版本。重装后必须新建 Codex 任务，不能用旧任务判断 skill 或 MCP 是否已更新。
+
+当前任务必须实际暴露所需 MCP 操作；插件已安装、配置存在或连接已授权都不足以证明可调用。未暴露操作时停在能力匹配阶段。
+
+安装包是可重建产物，不提交 Git。维护时只编辑 `agent/` 或 `integrations/codex/`，再运行 README 中的测试和打包命令。

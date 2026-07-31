@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": ["schema_version", "profile", "collection_quality", "analysis_quality", "limitations"],
+  "properties": {
+    "schema_version": { "const": 2 },
+    "profile": { "enum": ["full_insight", "dataset_only"] },
+    "collection_quality": {
+      "type": "object",
+      "required": ["decision", "source_file", "sha256"],
+      "properties": {
+        "decision": { "enum": ["usable", "usable_with_limitations"] },
+        "source_file": { "type": "string" },
+        "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+      }
+    },
+    "analysis_quality": {
+      "type": ["object", "null"],
+      "properties": {
+        "decision": { "enum": ["usable", "usable_with_limitations"] },
+        "source_file": { "type": "string" },
+        "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+      }
+    },
+    "limitations": { "type": "array", "items": { "type": "string" } }
+  }
+}

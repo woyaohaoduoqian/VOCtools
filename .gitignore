@@ -3,5 +3,10 @@ archive/cloudflare-prototype/.dev.vars
 archive/cloudflare-prototype/.wrangler/
 archive/cloudflare-prototype/node_modules/
 
-# local research exports
+# Local research exports. This whole folder can be moved out of the repository.
+调研文件/
 research/
+
+# Generated integration packages
+dist/
+plugins/

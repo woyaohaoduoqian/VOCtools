@@ -1,0 +1,13 @@
+{
+  "schema_version": 2,
+  "tables": {
+    "query_plan": ["query_id", "research_question_ids", "query_group", "query_text", "language", "research_purpose", "include_or_exclude", "status", "source", "revision_reason"],
+    "records": ["record_id", "query_id", "request_id", "raw_ref", "platform", "content_model", "entity_type", "parent_record_id", "permalink", "published_at", "collected_at", "text", "author", "source_location", "inclusion_status"],
+    "candidate_log": ["candidate_id", "query_id", "request_id", "record_id", "platform", "source_location", "candidate_url", "status", "exclusion_reason"],
+    "analysis_units": ["unit_id", "content_model", "primary_record_id", "primary_code", "secondary_codes", "inclusion_status", "dedup_status", "classification_reason"],
+    "evidence_links": ["link_id", "unit_id", "record_id", "code_id", "evidence_role", "quote", "reason"],
+    "coding_audit": ["audit_id", "unit_id", "first_code", "review_code", "agreement", "resolved_code", "reviewed_at", "resolution"],
+    "findings": ["finding_id", "research_question_id", "finding_type", "fact_statement", "scope_statement", "primary_code", "unit_count", "sample_denominator", "supporting_link_ids", "counterexample_link_ids", "evidence_level", "limitation_ids", "status"],
+    "hypotheses": ["hypothesis_id", "insight_id", "proposed_change", "expected_user_outcome", "supporting_finding_ids", "unverified_assumptions", "validation_needed", "status"]
+  }
+}
