@@ -1,6 +1,6 @@
 {
   "name": "voc-research-agent",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Evidence-led VOC research planning, collection governance, quality checks and insight delivery.",
   "author": {
     "name": "VOCtools"
@@ -9,7 +9,7 @@
   "skills": "./skills/",
   "mcpServers": "./.mcp.json",
   "interface": {
-    "displayName": "VOC \u8c03\u7814\u667a\u80fd\u4f53",
+    "displayName": "VOC \u8c03\u7814\u52a9\u624b",
     "shortDescription": "\u5c06 VOC \u8c03\u7814\u53d8\u6210\u53ef\u786e\u8ba4\u3001\u53ef\u8d28\u68c0\u3001\u53ef\u6eaf\u6e90\u7684\u7814\u7a76\u4ea4\u4ed8\u3002",
     "longDescription": "\u4ece\u7814\u7a76\u65b9\u6848\u3001\u8d39\u7528\u786e\u8ba4\u3001\u8bd5\u8dd1\u548c\u8d28\u91cf\u95f8\u95e8\uff0c\u5230\u7f16\u7801\u4e0e\u8bc1\u636e\u5316\u62a5\u544a\u7684 VOC \u8c03\u7814\u5de5\u4f5c\u6d41\u3002\u9ed8\u8ba4\u4e0d\u91c7\u96c6\u3001\u4e0d\u7f16\u9020\uff1b\u4efb\u4f55\u4ed8\u8d39\u91c7\u96c6\u5747\u9700\u7528\u6237\u660e\u786e\u6388\u6743\u3002",
     "developerName": "VOCtools",

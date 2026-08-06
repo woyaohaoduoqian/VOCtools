@@ -38,7 +38,7 @@ Get-ChildItem -LiteralPath $agentSource -Force | ForEach-Object {
 $frontmatter = @"
 ---
 name: voctools
-description: 执行可溯源的公开 VOC 调研，从需求归一化、研究设计、能力匹配和受控采集，到两级质量闸门、结构化洞察与平台无关交付。没有真实可追溯数据时不输出研究结论。
+description: 执行可溯源的公开 VOC 调研，从需求归一化、研究设计、能力匹配和受控采集，到采集/分析/综合质量闸门、结构化洞察与平台无关交付。没有真实可追溯数据时不输出研究结论。
 ---
 
 "@

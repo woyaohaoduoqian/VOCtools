@@ -16,6 +16,13 @@ const writeJson = (file, value) => writeFile(file, `${JSON.stringify(value, null
 const sha256 = (value) => createHash("sha256").update(value).digest("hex");
 const idToken = (value) => String(value).normalize("NFKC").replace(/^RESEARCH-/, "").replace(/[^A-Za-z0-9._-]+/g, "-").replace(/^-+|-+$/g, "") || sha256(String(value)).slice(0, 12);
 const tableFields = (await readJson(join(agentRoot, "schemas", "tabular-contracts.json"))).tables;
+const formalResearchUses = new Set(["user_needs", "usage_experience", "product_problem_improvement"]);
+const evidenceDimensions = new Set(["user_context", "goal_task", "current_approach", "friction", "consequence", "alternative", "expected_outcome", "counterexample", "other"]);
+const requiredDimensionsByUse = {
+  user_needs: ["goal_task", "expected_outcome"],
+  usage_experience: ["current_approach", "friction"],
+  product_problem_improvement: ["friction", "consequence"]
+};
 
 function parseCsv(text) {
   const rows = []; let row = []; let cell = ""; let quoted = false;
@@ -42,6 +49,23 @@ const quote = (value) => {
 const toCsv = (fields, rows) => `\uFEFF${fields.join(",")}\n${rows.map((row) => fields.map((field) => quote(row[field])).join(",")).join("\n")}${rows.length ? "\n" : ""}`;
 const readCsv = async (file) => parseCsv(await readFile(file, "utf8"));
 const duplicates = (values) => [...new Set(values.filter(Boolean).filter((value, i, all) => all.indexOf(value) !== i))];
+
+function queryPlanErrors(queryPlan, researchQuestionIds) {
+  const errors = [];
+  for (const id of duplicates(queryPlan.rows.map((row) => row.query_id))) errors.push(`查询 ID 重复 ${id}`);
+  for (const row of queryPlan.rows) {
+    if (!row.query_id?.startsWith("Q-")) errors.push("查询 ID 无效");
+    if (!["draft", "approved", "rejected", "retired"].includes(row.status)) errors.push(`${row.query_id || "未知查询"} 状态无效`);
+    if (!["include", "exclude"].includes(row.include_or_exclude)) errors.push(`${row.query_id || "未知查询"} include_or_exclude 无效`);
+    if (row.status === "approved" && row.include_or_exclude === "include" && !meaningful(row.query_text)) errors.push(`${row.query_id} 已批准查询缺少 query_text`);
+    const linked = splitIds(row.research_question_ids);
+    if (!linked.length) errors.push(`${row.query_id} 未关联研究问题`);
+    for (const id of linked) if (!researchQuestionIds.has(id)) errors.push(`${row.query_id} 引用不存在研究问题 ${id}`);
+  }
+  return errors;
+}
+
+const executableQueryIds = (queryPlan, activeResearchQuestionIds) => new Set(queryPlan.rows.filter((row) => row.status === "approved" && row.include_or_exclude === "include" && splitIds(row.research_question_ids).every((id) => activeResearchQuestionIds.has(id))).map((row) => row.query_id));
 
 function schemaErrors(value, schema, path = "$", rootSchema = schema) {
   if (schema.$ref?.startsWith("#/")) {
@@ -134,12 +158,17 @@ function coreStageGateErrors(research) {
   const index = stages.indexOf(research.current_stage);
   if (index >= stages.indexOf("collection")) {
     for (const gate of ["intake", "design", "capability"]) if (!gatePassed(research.gates?.[gate])) errors.push(`进入 ${research.current_stage} 前 ${gate} 闸门未通过`);
+    if (!formalResearchUses.has(research.research_use)) errors.push("进入采集前必须选择正式支持的调研用途");
+    if (!meaningful(research.target_users) || research.target_users === "unknown") errors.push("进入采集前必须明确目标用户");
   }
   if (index >= stages.indexOf("analysis") && !gatePassed(research.gates?.collection_quality)) errors.push(`进入 ${research.current_stage} 前 collection_quality 闸门未通过`);
+  if (research.current_stage === "synthesis" && !gatePassed(research.gates?.analysis_quality)) errors.push("进入 synthesis 前 analysis_quality 闸门未通过");
   return errors;
 }
 
 const collectionScopeSnapshot = (research, run) => ({
+  research_use: research.research_use,
+  target_users: research.target_users,
   analysis_unit: research.sample_target.analysis_unit,
   target: research.sample_target.target,
   inclusion_rules_locked: research.sample_target.inclusion_rules_locked,
@@ -178,6 +207,8 @@ const researchTemplate = (name) => ({
   schema_version: 2,
   research_id: `RESEARCH-${idToken(name)}`,
   title: name,
+  research_use: "unknown",
+  target_users: "unknown",
   current_stage: "intake",
   status: "draft",
   mode: "unknown",
@@ -198,6 +229,7 @@ const researchTemplate = (name) => ({
     capability: { status: "not_started", result_file: "provider-binding.json" },
     collection_quality: { status: "not_started", result_file: "quality/collection-quality.json" },
     analysis_quality: { status: "not_started", result_file: "quality/analysis-quality.json" },
+    synthesis: { status: "not_started", result_file: "quality/synthesis-quality.json" },
     delivery: { status: "not_started", result_file: "交付/审阅数据/交付元数据.json" }
   },
   sample_target: {
@@ -254,6 +286,7 @@ async function collectionQuality(task) {
   const eventSchema = await readJson(join(agentRoot, "schemas", "request-event.schema.json"));
   const runSchema = await readJson(join(agentRoot, "schemas", "collection-run.schema.json"));
   const traceErrors = [
+    ...headerErrors(queryPlan, tableFields.query_plan, "query-plan.csv"),
     ...headerErrors(records, tableFields.records, "records.csv"),
     ...headerErrors(candidates, tableFields.candidate_log, "candidate-log.csv"),
     ...events.flatMap((event, index) => schemaErrors(event, eventSchema, `requests.jsonl[${index}]`)),
@@ -261,7 +294,11 @@ async function collectionQuality(task) {
   ];
   traceErrors.push(...coreStageGateErrors(research));
   traceErrors.push(...await collectionAuthorizationErrors(task, research, run, binding));
-  const queryIds = new Set(queryPlan.rows.map((row) => row.query_id));
+  const researchQuestionIds = new Set(research.research_questions.map((item) => item.research_question_id));
+  const activeResearchQuestionIds = new Set(research.research_questions.filter((item) => item.status === "active").map((item) => item.research_question_id));
+  traceErrors.push(...queryPlanErrors(queryPlan, researchQuestionIds));
+  const queryIds = executableQueryIds(queryPlan, activeResearchQuestionIds);
+  if (!queryIds.size) traceErrors.push("没有可执行的已批准 include 查询");
   const boundProviders = new Set(binding.bindings.filter((item) => item.decision === "usable").map((item) => item.provider_id));
   if (run.research_id !== research.research_id) traceErrors.push("collection-run research_id 与任务不一致");
   if (!["in_progress", "succeeded"].includes(run.status)) traceErrors.push(`collection-run 状态不可质检：${run.status}`);
@@ -269,7 +306,7 @@ async function collectionQuality(task) {
   for (const event of events) {
     if (event.run_id !== run.run_id) traceErrors.push(`${event.request_id} 的 run_id 与当前运行不一致`);
     if (!run.provider_bindings.includes(event.provider_id) || !boundProviders.has(event.provider_id)) traceErrors.push(`${event.request_id} 的 provider_id 未获本次运行授权`);
-    if (!queryIds.has(event.query_id)) traceErrors.push(`${event.request_id} 引用不存在查询 ${event.query_id}`);
+    if (!queryIds.has(event.query_id)) traceErrors.push(`${event.request_id} 引用未批准或不可执行的查询 ${event.query_id}`);
   }
   if (!records.rows.length) traceErrors.push("records.csv 没有数据行");
   const includedRows = records.rows.filter((row) => row.inclusion_status === "included");
@@ -381,10 +418,12 @@ async function analysisQuality(task) {
   const invalidPrimaryCodes = units.rows.filter((row) => row.inclusion_status === "included" && (!row.primary_code || row.primary_code === "unknown" || (row.primary_code !== "uncategorized" && !codeIds.has(row.primary_code)))).map((row) => row.unit_id);
   const replyUnits = units.rows.filter((row) => recordById.get(row.primary_record_id)?.entity_type === "reply").map((row) => row.unit_id);
   const validRoles = new Set(["primary", "supporting", "counterexample", "context", "exclusion_basis"]);
-  const invalidEvidenceLinks = links.rows.filter((row) => !unitIds.has(row.unit_id) || !recordById.has(row.record_id) || !validRoles.has(row.evidence_role) || (row.code_id && !codeIds.has(row.code_id))).map((row) => row.link_id);
+  const invalidEvidenceLinks = links.rows.filter((row) => !unitIds.has(row.unit_id) || !recordById.has(row.record_id) || !validRoles.has(row.evidence_role) || !evidenceDimensions.has(row.dimension) || (row.code_id && !codeIds.has(row.code_id))).map((row) => row.link_id);
   const quoteMismatches = links.rows.filter((row) => row.quote && !String(recordById.get(row.record_id)?.text || "").includes(row.quote)).map((row) => row.link_id);
   const included = units.rows.filter((row) => row.inclusion_status === "included");
   const includedUnitIds = new Set(included.map((row) => row.unit_id));
+  const dimensionCoverage = Object.fromEntries([...evidenceDimensions].map((dimension) => [dimension, new Set(links.rows.filter((row) => row.dimension === dimension && includedUnitIds.has(row.unit_id)).map((row) => row.unit_id)).size]));
+  const missingRequiredDimensions = (requiredDimensionsByUse[research.research_use] || []).filter((dimension) => !dimensionCoverage[dimension]);
   const missingPrimaryLinks = included.filter((unit) => !links.rows.some((link) => link.unit_id === unit.unit_id && link.record_id === unit.primary_record_id && link.evidence_role === "primary")).map((unit) => unit.unit_id);
   const uncategorized = included.filter((row) => ["uncategorized", "unknown", ""].includes(row.primary_code)).length;
   const uncategorizedRate = included.length ? +(uncategorized / included.length * 100).toFixed(2) : 0;
@@ -406,18 +445,19 @@ async function analysisQuality(task) {
   const fatal = [...headerErrors(units, tableFields.analysis_units, "analysis-units.csv"), ...headerErrors(links, tableFields.evidence_links, "evidence-links.csv"), ...headerErrors(audits, tableFields.coding_audit, "coding-audit.csv"), ...duplicateUnitIds, ...duplicatePrimaryRecords, ...invalidPrimaryCodes, ...replyUnits, ...invalidEvidenceLinks, ...missingPrimaryLinks, ...quoteMismatches, ...duplicateAuditIds, ...duplicateAuditUnits, ...invalidAudits];
   if (!included.length) fatal.push("没有纳入分析单位");
   if (!codeIds.size) fatal.push("codebook.md 没有 CODE ID");
+  for (const dimension of missingRequiredDimensions) fatal.push(`调研用途 ${research.research_use} 缺少编码维度 ${dimension}`);
   if (auditUnreliable) fatal.push("二次编码覆盖不足或分歧率超过 20%");
   const limitations = uncategorizedRate > 30 ? [`未归类比例为 ${uncategorizedRate}%`] : [];
   const decision = fatal.length ? "unusable" : limitations.length ? "usable_with_limitations" : "usable";
   const result = {
     schema_version: 2, checked_at: now(), decision, unit_count: units.rows.length, included_unit_count: included.length, duplicate_unit_ids: duplicateUnitIds,
     duplicate_primary_records: duplicatePrimaryRecords, invalid_primary_codes: [...new Set([...invalidPrimaryCodes, ...replyUnits])],
-    invalid_evidence_links: invalidEvidenceLinks, missing_primary_links: missingPrimaryLinks, quote_mismatches: quoteMismatches, uncategorized_rate: uncategorizedRate,
+    invalid_evidence_links: invalidEvidenceLinks, missing_primary_links: missingPrimaryLinks, quote_mismatches: quoteMismatches, dimension_coverage: dimensionCoverage, uncategorized_rate: uncategorizedRate,
     audit_required: auditRequired, audit_completed: auditCompleted, audit_disagreements: auditDisagreements, audit_coverage: auditCoverage, limitations,
     next_step: decision === "unusable" ? "return_to_analysis" : "generate_findings"
   };
   await writeJson(join(task, "quality", "analysis-quality.json"), result);
-  await writeFile(join(task, "quality", "analysis-quality.md"), `# 分析质量检查\n\n- 判定：${decision}\n- 分析单位：${units.rows.length}\n- 无效项：${fatal.length}\n- 未归类比例：${uncategorizedRate}%\n- 二次编码：${auditCompleted}/${auditRequired}，分歧 ${auditDisagreements}\n- 限制：${limitations.length ? limitations.join("；") : "无"}\n`, "utf8");
+  await writeFile(join(task, "quality", "analysis-quality.md"), `# 分析质量检查\n\n- 判定：${decision}\n- 分析单位：${units.rows.length}\n- 无效项：${fatal.length}\n- 编码维度覆盖：${Object.entries(dimensionCoverage).filter(([, count]) => count).map(([dimension, count]) => `${dimension}=${count}`).join("；") || "无"}\n- 未归类比例：${uncategorizedRate}%\n- 二次编码：${auditCompleted}/${auditRequired}，分歧 ${auditDisagreements}\n- 限制：${limitations.length ? limitations.join("；") : "无"}\n`, "utf8");
   research.gates.analysis_quality = { status: decision === "usable" ? "passed" : decision === "usable_with_limitations" ? "passed_with_limitations" : "failed", result_file: "quality/analysis-quality.json" };
   if (research.stage_history.at(-1)?.stage !== "analysis_quality") pushHistory(research, "analysis_quality", "entered", "analysis_quality_started");
   pushHistory(research, "analysis_quality", decision === "unusable" ? "blocked" : "passed", decision);
@@ -428,8 +468,10 @@ async function analysisQuality(task) {
 
 async function quality() {
   const task = resolve(arg("--task")); const stage = arg("--stage");
-  if (!task || !["collection", "analysis"].includes(stage)) die("quality 需要 --task 和 --stage collection|analysis");
-  if (stage === "collection") await collectionQuality(task); else await analysisQuality(task);
+  if (!task || !["collection", "analysis", "synthesis"].includes(stage)) die("quality 需要 --task 和 --stage collection|analysis|synthesis");
+  if (stage === "collection") await collectionQuality(task);
+  else if (stage === "analysis") await analysisQuality(task);
+  else await synthesisQuality(task);
 }
 
 async function summarize() {
@@ -464,6 +506,105 @@ function sectionContent(text, heading) {
   if (!match) return "";
   const rest = text.slice(match.index + match[0].length);
   return rest.slice(0, /^#{1,6}\s+/m.exec(rest)?.index ?? rest.length).trim();
+}
+
+async function synthesisArtifactResult({ researchFile, recordsFile, unitsFile, linksFile, findingsFile, insightsFile, hypothesesFile, reportFile }) {
+  const errors = [];
+  for (const file of [researchFile, recordsFile, unitsFile, linksFile, findingsFile, insightsFile, hypothesesFile, reportFile]) if (!await exists(file)) errors.push(`综合输出缺少 ${basename(file)}`);
+  if (errors.length) return { errors, findingCount: 0, insightCount: 0, hypothesisCount: 0, sourceSha256: null };
+  const research = await readJson(researchFile);
+  const records = await readCsv(recordsFile);
+  const units = await readCsv(unitsFile);
+  const links = await readCsv(linksFile);
+  const findings = await readCsv(findingsFile);
+  const hypotheses = await readCsv(hypothesesFile);
+  errors.push(...headerErrors(findings, tableFields.findings, basename(findingsFile)), ...headerErrors(hypotheses, tableFields.hypotheses, basename(hypothesesFile)));
+  const rqIds = new Set(research.research_questions.filter((rq) => rq.status === "active").map((rq) => rq.research_question_id));
+  const recordById = new Map(records.rows.map((row) => [row.record_id, row]));
+  const unitById = new Map(units.rows.map((row) => [row.unit_id, row]));
+  const linkById = new Map(links.rows.map((row) => [row.link_id, row]));
+  const includedUnitIds = new Set(units.rows.filter((row) => row.inclusion_status === "included" && row.dedup_status !== "duplicate").map((row) => row.unit_id));
+  const limitationIds = new Set(research.limitations.map((item) => item.limitation_id));
+  const findingIds = new Set(findings.rows.map((row) => row.finding_id));
+  const primaryCodes = new Set(units.rows.map((row) => row.primary_code).filter(Boolean));
+  if (!findings.rows.length) errors.push("综合输出没有发现");
+  for (const id of duplicates(findings.rows.map((row) => row.finding_id))) errors.push(`发现 ID 重复 ${id}`);
+  for (const finding of findings.rows) {
+    for (const field of ["finding_id", "research_question_id", "finding_type", "fact_statement", "scope_statement", "unit_count", "sample_denominator", "evidence_level", "status"]) if (!meaningful(finding[field])) errors.push(`${finding.finding_id || "未知发现"} 缺少 ${field}`);
+    if (!finding.finding_id?.startsWith("F-")) errors.push("发现 ID 无效");
+    if (finding.status !== "accepted") errors.push(`${finding.finding_id} 不是 accepted 状态`);
+    if (finding.primary_code && !primaryCodes.has(finding.primary_code)) errors.push(`${finding.finding_id} 主类别不存在`);
+    if (!["single_observation", "repeated_pattern", "stable_within_sample", "insufficient_data"].includes(finding.evidence_level)) errors.push(`${finding.finding_id} 证据等级无效`);
+    if (!rqIds.has(finding.research_question_id)) errors.push(`${finding.finding_id} 引用不存在研究问题`);
+    const supportingIds = splitIds(finding.supporting_link_ids);
+    const counterexampleIds = splitIds(finding.counterexample_link_ids);
+    if (finding.evidence_level !== "insufficient_data" && !supportingIds.length) errors.push(`${finding.finding_id} 没有支持证据`);
+    for (const id of supportingIds) if (!linkById.has(id)) errors.push(`${finding.finding_id} 引用不存在证据 ${id}`); else if (!["primary", "supporting"].includes(linkById.get(id).evidence_role)) errors.push(`${finding.finding_id} 的支持证据角色无效 ${id}`);
+    for (const id of counterexampleIds) if (!linkById.has(id)) errors.push(`${finding.finding_id} 引用不存在反例 ${id}`); else if (linkById.get(id).evidence_role !== "counterexample") errors.push(`${finding.finding_id} 的反例证据角色无效 ${id}`);
+    for (const id of splitIds(finding.limitation_ids)) if (!limitationIds.has(id)) errors.push(`${finding.finding_id} 引用不存在限制 ${id}`);
+    const countedUnits = new Set(supportingIds.map((id) => linkById.get(id)?.unit_id).filter((id) => includedUnitIds.has(id)));
+    const denominator = includedUnitIds.size;
+    if (Number(finding.unit_count) !== countedUnits.size || Number(finding.sample_denominator) !== denominator) errors.push(`${finding.finding_id} 分子或分母不可从支持证据复算`);
+    if (finding.evidence_level === "single_observation" && countedUnits.size !== 1) errors.push(`${finding.finding_id} single_observation 必须恰有一个支持单位`);
+    if (["repeated_pattern", "stable_within_sample"].includes(finding.evidence_level) && countedUnits.size < 2) errors.push(`${finding.finding_id} ${finding.evidence_level} 至少需要两个支持单位`);
+    if (finding.evidence_level === "stable_within_sample") {
+      const locations = new Set(supportingIds.map((id) => recordById.get(linkById.get(id)?.record_id)?.source_location).filter(Boolean));
+      if (locations.size < 2) errors.push(`${finding.finding_id} stable_within_sample 的来源过于集中`);
+    }
+  }
+  const insightText = await readFile(insightsFile, "utf8");
+  const insightCards = parseInsightCards(insightText);
+  const insightIds = new Set(insightCards.map((card) => card.insight_id));
+  for (const id of duplicates(insightCards.map((card) => card.insight_id))) errors.push(`洞察 ID 重复 ${id}`);
+  for (const card of insightCards) {
+    if (!card.finding_ids.length) errors.push(`${card.insight_id} 没有关联发现`);
+    for (const id of card.finding_ids) if (!findingIds.has(id)) errors.push(`${card.insight_id} 引用不存在发现 ${id}`);
+    for (const heading of ["已观察事实", "发生场景", "当前替代和卡点", "需求解读", "替代解释", "证据边界", "关联限制", "后续待验证问题"]) if (!meaningful(sectionContent(card.body, heading))) errors.push(`${card.insight_id} 缺少有效章节：${heading}`);
+  }
+  if (!insightIds.size) errors.push("洞察文件没有以标题声明的 I- ID");
+  for (const id of duplicates(hypotheses.rows.map((row) => row.hypothesis_id))) errors.push(`产品假设 ID 重复 ${id}`);
+  for (const hypothesis of hypotheses.rows) {
+    for (const field of ["hypothesis_id", "insight_id", "proposed_change", "expected_user_outcome", "supporting_finding_ids", "unverified_assumptions", "validation_needed", "status"]) if (!meaningful(hypothesis[field])) errors.push(`${hypothesis.hypothesis_id || "未知假设"} 缺少 ${field}`);
+    if (!hypothesis.hypothesis_id?.startsWith("H-")) errors.push("产品假设 ID 无效");
+    if (hypothesis.status !== "proposed") errors.push(`${hypothesis.hypothesis_id} 必须保持 proposed`);
+    if (!insightIds.has(hypothesis.insight_id)) errors.push(`${hypothesis.hypothesis_id} 引用不存在洞察`);
+    const supportingFindingIds = splitIds(hypothesis.supporting_finding_ids);
+    if (!supportingFindingIds.length) errors.push(`${hypothesis.hypothesis_id} 没有关联发现`);
+    for (const id of supportingFindingIds) if (!findingIds.has(id)) errors.push(`${hypothesis.hypothesis_id} 引用不存在发现 ${id}`);
+  }
+  const reportText = await readFile(reportFile, "utf8");
+  for (const heading of ["研究范围与问题", "数据来源与方法", "样本与质量", "发现与证据", "限制与待验证"]) if (!meaningful(sectionContent(reportText, heading))) errors.push(`报告缺少有效章节：${heading}`);
+  const sourceSha256 = {
+    findings: sha256(await readFile(findingsFile)), insights: sha256(await readFile(insightsFile)),
+    hypotheses: sha256(await readFile(hypothesesFile)), report: sha256(await readFile(reportFile))
+  };
+  return { errors, findingCount: findings.rows.length, insightCount: insightCards.length, hypothesisCount: hypotheses.rows.length, sourceSha256 };
+}
+
+async function synthesisQuality(task) {
+  const researchFile = join(task, "research.json");
+  const research = await readJson(researchFile);
+  if (research.current_stage !== "synthesis") die(`当前阶段 ${research.current_stage} 不能执行综合质量检查`);
+  const gateErrors = coreStageGateErrors(research);
+  if (gateErrors.length) die(`综合质量检查前置闸门无效：${gateErrors.join("；")}`);
+  const checked = await synthesisArtifactResult({
+    researchFile, recordsFile: join(task, "collection", "records.csv"), unitsFile: join(task, "analysis-units.csv"), linksFile: join(task, "evidence-links.csv"),
+    findingsFile: join(task, "findings.csv"), insightsFile: join(task, "insights.md"), hypothesesFile: join(task, "hypotheses.csv"), reportFile: join(task, "report.md")
+  });
+  const decision = checked.errors.length ? "unusable" : "usable";
+  const result = { schema_version: 2, checked_at: now(), decision, finding_count: checked.findingCount, insight_count: checked.insightCount, hypothesis_count: checked.hypothesisCount, source_sha256: checked.sourceSha256 || { findings: "0".repeat(64), insights: "0".repeat(64), hypotheses: "0".repeat(64), report: "0".repeat(64) }, errors: checked.errors, limitations: [], next_step: decision === "unusable" ? "return_to_synthesis" : "prepare_delivery" };
+  await writeJson(join(task, "quality", "synthesis-quality.json"), result);
+  await writeFile(join(task, "quality", "synthesis-quality.md"), `# 综合质量检查\n\n- 判定：${decision}\n- 发现：${checked.findingCount}\n- 洞察：${checked.insightCount}\n- 产品假设：${checked.hypothesisCount}\n- 错误：${checked.errors.length ? checked.errors.join("；") : "无"}\n`, "utf8");
+  research.gates.synthesis = { status: decision === "unusable" ? "failed" : "passed", result_file: "quality/synthesis-quality.json" };
+  pushHistory(research, "synthesis", decision === "unusable" ? "blocked" : "passed", decision);
+  if (decision === "unusable") research.status = "blocked";
+  else {
+    research.current_stage = "delivery"; research.status = "running";
+    research.gates.delivery = { status: "pending", result_file: "交付/审阅数据/交付元数据.json" };
+    pushHistory(research, "delivery", "entered", "synthesis_quality_passed");
+  }
+  await writeJson(researchFile, research);
+  console.log(decision);
 }
 
 async function walkFiles(root, base = root) {
@@ -518,6 +659,7 @@ async function deliveryErrors(task, { allowPendingDelivery = true } = {}) {
   const collectionGate = deliveredResearch.gates?.collection_quality?.status;
   if (!["passed", "passed_with_limitations"].includes(collectionGate)) errors.push("采集质量闸门未通过");
   if (profile === "full_insight" && !["passed", "passed_with_limitations"].includes(deliveredResearch.gates?.analysis_quality?.status)) errors.push("分析质量闸门未通过");
+  if (profile === "full_insight" && !["passed", "passed_with_limitations"].includes(deliveredResearch.gates?.synthesis?.status)) errors.push("综合质量闸门未通过");
 
   const qualitySummary = await readJson(join(data, "质量检查结果.json"));
   errors.push(...schemaErrors(qualitySummary, await readJson(join(agentRoot, "schemas", "delivery-quality-summary.schema.json")), "质量检查结果"));
@@ -539,12 +681,24 @@ async function deliveryErrors(task, { allowPendingDelivery = true } = {}) {
       if (qualitySummary.analysis_quality?.decision !== sourceAnalysisQuality.decision || !["usable", "usable_with_limitations"].includes(sourceAnalysisQuality.decision)) errors.push("交付分析质量与源质量结果不一致或不可交付");
       if (qualitySummary.analysis_quality?.sha256 !== sha256(sourceAnalysisContent)) errors.push("交付分析质量哈希与源结果不一致");
     }
+    const sourceSynthesisPath = join(task, "quality", "synthesis-quality.json");
+    if (!await exists(sourceSynthesisPath)) errors.push("缺少源综合质量结果");
+    else {
+      const sourceSynthesisContent = await readFile(sourceSynthesisPath);
+      const sourceSynthesisQuality = JSON.parse(sourceSynthesisContent);
+      if (qualitySummary.synthesis_quality?.decision !== sourceSynthesisQuality.decision || !["usable", "usable_with_limitations"].includes(sourceSynthesisQuality.decision)) errors.push("交付综合质量与源质量结果不一致或不可交付");
+      if (qualitySummary.synthesis_quality?.sha256 !== sha256(sourceSynthesisContent)) errors.push("交付综合质量哈希与源结果不一致");
+    }
+    for (const [source, delivered] of [["findings.csv", "发现清单.csv"], ["insights.md", "洞察.md"], ["hypotheses.csv", "产品假设.csv"]]) {
+      if (!await exists(join(task, source)) || await readFile(join(task, source), "utf8") !== await readFile(join(data, delivered), "utf8")) errors.push(`交付 ${delivered} 与已质检源文件不一致`);
+    }
+    if (!await exists(join(task, "report.md")) || await readFile(join(task, "report.md"), "utf8") !== await readFile(join(human, "调研报告.md"), "utf8")) errors.push("交付调研报告与已质检 report.md 不一致");
   }
 
   const reportText = await readFile(join(human, "调研报告.md"), "utf8");
   for (const heading of ["研究范围与问题", "数据来源与方法", "样本与质量", "发现与证据", "限制与待验证"]) if (!meaningful(sectionContent(reportText, heading))) errors.push(`调研报告缺少有效章节：${heading}`);
   const qualityText = await readFile(join(human, "数据质量核查报告.md"), "utf8");
-  for (const heading of profile === "full_insight" ? ["采集质量", "分析质量", "限制"] : ["采集质量", "限制"]) if (!meaningful(sectionContent(qualityText, heading))) errors.push(`数据质量核查报告缺少有效章节：${heading}`);
+  for (const heading of profile === "full_insight" ? ["采集质量", "分析质量", "综合质量", "限制"] : ["采集质量", "限制"]) if (!meaningful(sectionContent(qualityText, heading))) errors.push(`数据质量核查报告缺少有效章节：${heading}`);
   const traceText = await readFile(join(human, "完整证据追溯表.md"), "utf8");
   for (const prefix of profile === "full_insight" ? ["RQ-", "R-", "U-", "E-", "F-", "I-"] : ["RQ-", "R-"]) if (!traceText.includes(prefix)) errors.push(`完整证据追溯表缺少 ${prefix} 关系`);
 
@@ -557,7 +711,9 @@ async function deliveryErrors(task, { allowPendingDelivery = true } = {}) {
     const rqIds = new Set(deliveredResearch.research_questions.filter((rq) => rq.status === "active").map((rq) => rq.research_question_id));
     const recordIds = new Set(records.rows.map((row) => row.record_id));
     const unitIds = new Set(units.rows.map((row) => row.unit_id));
+    const includedUnitIds = new Set(units.rows.filter((unit) => unit.inclusion_status === "included" && unit.dedup_status !== "duplicate").map((unit) => unit.unit_id));
     const linkIds = new Set(links.rows.map((row) => row.link_id));
+    const linkById = new Map(links.rows.map((row) => [row.link_id, row]));
     const limitationIds = new Set(deliveredResearch.limitations.map((item) => item.limitation_id));
     const findingIds = new Set(findings.rows.map((row) => row.finding_id));
     const primaryCodes = new Set(units.rows.map((row) => row.primary_code).filter(Boolean));
@@ -566,19 +722,19 @@ async function deliveryErrors(task, { allowPendingDelivery = true } = {}) {
     for (const unit of units.rows) if (!recordIds.has(unit.primary_record_id)) errors.push(`${unit.unit_id} 引用不存在记录`);
     for (const link of links.rows) if (!unitIds.has(link.unit_id) || !recordIds.has(link.record_id)) errors.push(`${link.link_id} 证据关系无效`);
     for (const finding of findings.rows) {
-      for (const field of ["finding_id", "research_question_id", "finding_type", "fact_statement", "scope_statement", "primary_code", "unit_count", "sample_denominator", "evidence_level", "status"]) if (!meaningful(finding[field])) errors.push(`${finding.finding_id || "未知发现"} 缺少 ${field}`);
+      for (const field of ["finding_id", "research_question_id", "finding_type", "fact_statement", "scope_statement", "unit_count", "sample_denominator", "evidence_level", "status"]) if (!meaningful(finding[field])) errors.push(`${finding.finding_id || "未知发现"} 缺少 ${field}`);
       if (!finding.finding_id?.startsWith("F-")) errors.push("发现 ID 无效");
       if (finding.status !== "accepted") errors.push(`${finding.finding_id} 不是 accepted 状态`);
-      if (!primaryCodes.has(finding.primary_code)) errors.push(`${finding.finding_id} 主类别不存在`);
+      if (finding.primary_code && !primaryCodes.has(finding.primary_code)) errors.push(`${finding.finding_id} 主类别不存在`);
       if (!["single_observation", "repeated_pattern", "stable_within_sample", "insufficient_data"].includes(finding.evidence_level)) errors.push(`${finding.finding_id} 证据等级无效`);
       if (!rqIds.has(finding.research_question_id)) errors.push(`${finding.finding_id} 引用不存在研究问题`);
       const supportingIds = splitIds(finding.supporting_link_ids);
       if (finding.evidence_level !== "insufficient_data" && !supportingIds.length) errors.push(`${finding.finding_id} 没有支持证据`);
       for (const id of [...supportingIds, ...splitIds(finding.counterexample_link_ids)]) if (!linkIds.has(id)) errors.push(`${finding.finding_id} 引用不存在证据 ${id}`);
       for (const id of splitIds(finding.limitation_ids)) if (!limitationIds.has(id)) errors.push(`${finding.finding_id} 引用不存在限制 ${id}`);
-      const counted = units.rows.filter((unit) => unit.inclusion_status === "included" && unit.dedup_status !== "duplicate" && unit.primary_code === finding.primary_code).length;
-      const denominator = units.rows.filter((unit) => unit.inclusion_status === "included" && unit.dedup_status !== "duplicate").length;
-      if (Number(finding.unit_count) !== counted || Number(finding.sample_denominator) !== denominator) errors.push(`${finding.finding_id} 分子或分母不可复算`);
+      const counted = new Set(supportingIds.map((id) => linkById.get(id)?.unit_id).filter((id) => includedUnitIds.has(id))).size;
+      const denominator = includedUnitIds.size;
+      if (Number(finding.unit_count) !== counted || Number(finding.sample_denominator) !== denominator) errors.push(`${finding.finding_id} 分子或分母不可从支持证据复算`);
     }
     const insightText = await readFile(join(data, "洞察.md"), "utf8");
     const insightCards = parseInsightCards(insightText);
@@ -632,13 +788,10 @@ async function validate() {
     errors.push(...headerErrors(queryPlan, tableFields.query_plan, "query-plan.csv"));
     errors.push(...headerErrors(records, tableFields.records, "records.csv"));
     errors.push(...headerErrors(candidates, tableFields.candidate_log, "candidate-log.csv"));
-    for (const query of queryPlan.rows) {
-      const linked = splitIds(query.research_question_ids);
-      if (!linked.length) errors.push(`${query.query_id} 未关联研究问题`);
-      for (const id of linked) if (!rqIds.has(id)) errors.push(`${query.query_id} 引用不存在研究问题 ${id}`);
-    }
-    const queryIds = new Set(queryPlan.rows.map((query) => query.query_id));
-    for (const record of records.rows) if (record.query_id !== "unknown" && !queryIds.has(record.query_id)) errors.push(`${record.record_id} 引用不存在查询 ${record.query_id}`);
+    errors.push(...queryPlanErrors(queryPlan, rqIds));
+    const activeRqIds = new Set(research.research_questions.filter((rq) => rq.status === "active").map((rq) => rq.research_question_id));
+    const queryIds = executableQueryIds(queryPlan, activeRqIds);
+    for (const record of records.rows) if (record.query_id !== "unknown" && !queryIds.has(record.query_id)) errors.push(`${record.record_id} 引用未批准或不可执行的查询 ${record.query_id}`);
     const requestEvents = await readJsonLines(join(task, "collection", "requests.jsonl"));
     const requestSchema = await readJson(join(agentRoot, "schemas", "request-event.schema.json"));
     requestEvents.forEach((event, index) => errors.push(...schemaErrors(event, requestSchema, `requests.jsonl[${index}]`)));
@@ -649,7 +802,7 @@ async function validate() {
     for (const event of requestEvents) {
       if (event.run_id !== collectionRun.run_id) errors.push(`${event.request_id} 的 run_id 与 collection-run 不一致`);
       if (!collectionRun.provider_bindings.includes(event.provider_id) || !allowedProviders.has(event.provider_id)) errors.push(`${event.request_id} 的 Provider 不属于当前可用绑定`);
-      if (!queryIds.has(event.query_id)) errors.push(`${event.request_id} 引用不存在查询 ${event.query_id}`);
+      if (!queryIds.has(event.query_id)) errors.push(`${event.request_id} 引用未批准或不可执行的查询 ${event.query_id}`);
     }
     const finalEvents = new Map(requestEvents.map((event) => [event.request_id, event]));
     for (const event of finalEvents.values()) {
@@ -691,7 +844,7 @@ async function migrate() {
   const manifest = await readJson(join(task, "manifest.json")); const name = manifest.research_id || basename(task);
   await mkdir(join(task, "collection", "raw"), { recursive: true }); await mkdir(join(task, "quality"), { recursive: true });
   const research = researchTemplate(name); research.current_stage = "analysis_quality"; research.status = "blocked";
-  research.limitations.push({ limitation_id: "L-MIGRATION-001", statement: "本任务由 v1 迁移；正式交付前必须重新执行 v2 两级质量检查。", applies_to: ["research"], status: "open" });
+  research.limitations.push({ limitation_id: "L-MIGRATION-001", statement: "本任务由 v1 迁移；正式交付前必须补充调研用途、目标用户和多维编码，并重新执行采集、分析与综合质量检查。", applies_to: ["research"], status: "open" });
   for (const stage of stages.slice(1, stages.indexOf("analysis_quality") + 1)) pushHistory(research, stage, "entered", "v1_migration_history_reconstructed");
   pushHistory(research, "analysis_quality", "blocked", "v1_migration_requires_review");
   await writeJson(join(task, "research.json"), research);
@@ -729,7 +882,7 @@ async function migrate() {
   const migrationRecordById = new Map(records.map((record) => [record.record_id, record]));
   const links = units.map((unit, i) => ({
     link_id: `E-${String(i + 1).padStart(6, "0")}`, unit_id: unit.unit_id, record_id: unit.primary_record_id, code_id: unit.primary_code,
-    evidence_role: "primary", quote: migrationRecordById.get(unit.primary_record_id)?.text || "", reason: "v1 migration matched by permalink"
+    dimension: "other", evidence_role: "primary", quote: migrationRecordById.get(unit.primary_record_id)?.text || "", reason: "v1 migration matched by permalink"
   }));
   await writeFile(join(task, "analysis-units.csv"), toCsv(tableFields.analysis_units, units), "utf8");
   await writeFile(join(task, "evidence-links.csv"), toCsv(tableFields.evidence_links, links), "utf8");

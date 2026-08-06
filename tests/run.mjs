@@ -33,12 +33,20 @@ invalidStageResearch.stage_history.push({ stage: "analysis", status: "entered", 
 await writeFile(invalidStageFile, `${JSON.stringify(invalidStageResearch, null, 2)}\n`, "utf8");
 fails("validate", "--task", invalidStageTask);
 
-const queryRows = [{
-  query_id: "Q-001", research_question_ids: "RQ-001", query_group: "pain", query_text: "cleaning",
-  language: "en", research_purpose: "cleaning friction", include_or_exclude: "include", status: "approved", source: "user", revision_reason: ""
-}];
+const queryRows = [
+  {
+    query_id: "Q-001", research_question_ids: "RQ-001", query_group: "pain", query_text: "cleaning",
+    language: "en", research_purpose: "cleaning friction", include_or_exclude: "include", status: "approved", source: "user", revision_reason: ""
+  },
+  {
+    query_id: "Q-002", research_question_ids: "RQ-001", query_group: "draft", query_text: "cleanup",
+    language: "en", research_purpose: "draft alternative", include_or_exclude: "include", status: "draft", source: "agent", revision_reason: "not approved"
+  }
+];
 await writeFile(join(task, "query-plan.csv"), csv(tables.query_plan, queryRows), "utf8");
 research.research_questions = [{ research_question_id: "RQ-001", question: "清洁摩擦是什么？", status: "active" }];
+research.research_use = "product_problem_improvement";
+research.target_users = "使用便携榨汁杯并负责清洁的用户";
 research.mode = "exploratory";
 research.platform_scope = ["reddit"];
 research.content_models = ["threaded-discussion"];
@@ -82,6 +90,8 @@ collectionRun.approved_scope = {
   cost_limit: 0, currency: "USD", expansion_boundary: "r/test"
 };
 const scopeSnapshot = {
+  research_use: research.research_use,
+  target_users: research.target_users,
   analysis_unit: research.sample_target.analysis_unit,
   target: research.sample_target.target,
   inclusion_rules_locked: research.sample_target.inclusion_rules_locked,
@@ -130,6 +140,13 @@ assert.match(run("quality", "--task", task, "--stage", "collection"), /unusable/
 requestEvent = { ...requestEvent, response_sha256: hash("{\"ok\":true}\n") };
 await writeFile(join(task, "collection", "requests.jsonl"), `${JSON.stringify(requestEvent)}\n`, "utf8");
 
+// 未批准查询即使存在于已确认文件中也不能执行。
+requestEvent = { ...requestEvent, query_id: "Q-002" };
+await writeFile(join(task, "collection", "requests.jsonl"), `${JSON.stringify(requestEvent)}\n`, "utf8");
+assert.match(run("quality", "--task", task, "--stage", "collection"), /unusable/);
+requestEvent = { ...requestEvent, query_id: "Q-001" };
+await writeFile(join(task, "collection", "requests.jsonl"), `${JSON.stringify(requestEvent)}\n`, "utf8");
+
 // 参数、相关性、异常和平台偏差未检查时不能进入分析。
 assert.match(run("quality", "--task", task, "--stage", "collection"), /unusable/);
 collectionRun.observed_checks = Object.fromEntries(["parameters_effective", "relevance_reviewed", "anomalies_reviewed", "platform_bias_reviewed"].map((name) => [name, { status: "passed", notes: "fixture reviewed" }]));
@@ -166,8 +183,8 @@ await writeFile(join(task, "analysis-units.csv"), csv(tables.analysis_units, [{
   secondary_codes: "", inclusion_status: "included", dedup_status: "canonical", classification_reason: "明确描述清洁摩擦"
 }]), "utf8");
 await writeFile(join(task, "evidence-links.csv"), csv(tables.evidence_links, [
-  { link_id: "E-000001", unit_id: "U-000001", record_id: "R-000001", code_id: "CODE-001", evidence_role: "primary", quote: "清洁困难", reason: "主题证据" },
-  { link_id: "E-000002", unit_id: "U-000001", record_id: "R-000002", code_id: "CODE-001", evidence_role: "supporting", quote: "我也遇到过", reason: "回复佐证" }
+  { link_id: "E-000001", unit_id: "U-000001", record_id: "R-000001", code_id: "CODE-001", dimension: "friction", evidence_role: "primary", quote: "清洁困难", reason: "主题证据" },
+  { link_id: "E-000002", unit_id: "U-000001", record_id: "R-000002", code_id: "CODE-001", dimension: "consequence", evidence_role: "supporting", quote: "我也遇到过", reason: "回复佐证" }
 ]), "utf8");
 await writeFile(join(task, "codebook.md"), "# 编码表\n\n## CODE-001 清洁摩擦\n\n- 纳入：清洁困难\n- 排除：无\n", "utf8");
 await writeFile(join(task, "coding-audit.csv"), csv(tables.coding_audit, []), "utf8");
@@ -203,23 +220,11 @@ research = JSON.parse(await readFile(researchFile, "utf8"));
 collectionRun = JSON.parse(await readFile(collectionRunFile, "utf8"));
 collectionRun.status = "succeeded";
 await writeFile(collectionRunFile, `${JSON.stringify(collectionRun, null, 2)}\n`, "utf8");
-research.current_stage = "delivery";
-research.status = "running";
-research.gates.delivery = { status: "pending", result_file: "交付/审阅数据/交付元数据.json" };
-research.stage_history.push({ stage: "delivery", status: "entered", at: iso, reason: "delivery prepared" });
-await writeFile(researchFile, `${JSON.stringify(research, null, 2)}\n`, "utf8");
 
 const delivery = join(task, "交付"); const human = join(delivery, "交付报告"); const data = join(delivery, "审阅数据");
 await mkdir(human, { recursive: true }); await mkdir(data, { recursive: true });
 const finding = { finding_id: "F-001", research_question_id: "RQ-001", finding_type: "pattern", fact_statement: "样本内出现清洁摩擦", scope_statement: "本次样本", primary_code: "CODE-001", unit_count: "1", sample_denominator: "1", supporting_link_ids: "E-000001", counterexample_link_ids: "", evidence_level: "single_observation", limitation_ids: "", status: "accepted" };
 const hypothesis = { hypothesis_id: "H-001", insight_id: "I-001", proposed_change: "简化清洗", expected_user_outcome: "降低清洗摩擦", supporting_finding_ids: "F-001", unverified_assumptions: "方案可行", validation_needed: "可用性测试", status: "proposed" };
-const collectionQualityContent = await readFile(join(task, "quality", "collection-quality.json"));
-const analysisQualityContent = await readFile(join(task, "quality", "analysis-quality.json"));
-const qualitySummary = {
-  schema_version: 2, profile: "full_insight",
-  collection_quality: { decision: "usable", source_file: "quality/collection-quality.json", sha256: hash(collectionQualityContent) },
-  analysis_quality: { decision: "usable", source_file: "quality/analysis-quality.json", sha256: hash(analysisQualityContent) }, limitations: []
-};
 const insightContent = `# I-001 清洁洞察
 
 - 关联发现 IDs：F-001
@@ -256,8 +261,9 @@ const insightContent = `# I-001 清洁洞察
 
 通过可用性测试验证简化清洗是否改善体验。
 `;
-const files = {
-  "交付报告/调研报告.md": `# 调研报告
+const findingContent = csv(tables.findings, [finding]);
+const hypothesisContent = csv(tables.hypotheses, [hypothesis]);
+const reportContent = `# 调研报告
 
 ## 研究范围与问题
 
@@ -278,7 +284,27 @@ F-001 显示样本中出现清洁摩擦，并由 E-000001 支持。
 ## 限制与待验证
 
 样本量小，不能推断市场规模、购买率或商业结果。
-`,
+`;
+await writeFile(join(task, "findings.csv"), csv(tables.findings, [{ ...finding, unit_count: "2" }]), "utf8");
+await writeFile(join(task, "insights.md"), insightContent, "utf8");
+await writeFile(join(task, "hypotheses.csv"), hypothesisContent, "utf8");
+await writeFile(join(task, "report.md"), reportContent, "utf8");
+assert.match(run("quality", "--task", task, "--stage", "synthesis"), /unusable/);
+await writeFile(join(task, "findings.csv"), findingContent, "utf8");
+assert.match(run("quality", "--task", task, "--stage", "synthesis"), /usable/);
+research = JSON.parse(await readFile(researchFile, "utf8"));
+assert.equal(research.current_stage, "delivery");
+const collectionQualityContent = await readFile(join(task, "quality", "collection-quality.json"));
+const analysisQualityContent = await readFile(join(task, "quality", "analysis-quality.json"));
+const synthesisQualityContent = await readFile(join(task, "quality", "synthesis-quality.json"));
+const qualitySummary = {
+  schema_version: 2, profile: "full_insight",
+  collection_quality: { decision: "usable", source_file: "quality/collection-quality.json", sha256: hash(collectionQualityContent) },
+  analysis_quality: { decision: "usable", source_file: "quality/analysis-quality.json", sha256: hash(analysisQualityContent) },
+  synthesis_quality: { decision: "usable", source_file: "quality/synthesis-quality.json", sha256: hash(synthesisQualityContent) }, limitations: []
+};
+const files = {
+  "交付报告/调研报告.md": reportContent,
   "交付报告/完整证据追溯表.md": "# 完整证据追溯表\n\nRQ-001 → Q-001 → R-000001 → U-000001 → E-000001 → F-001 → I-001 → H-001\n",
   "交付报告/数据质量核查报告.md": `# 数据质量核查报告
 
@@ -290,6 +316,10 @@ F-001 显示样本中出现清洁摩擦，并由 E-000001 支持。
 
 分析质量为 usable，编码审计通过。
 
+## 综合质量
+
+综合质量为 usable，发现、洞察和假设关系通过校验。
+
 ## 限制
 
 仅有一个正式分析单位。
@@ -299,9 +329,9 @@ F-001 显示样本中出现清洁摩擦，并由 E-000001 支持。
   "审阅数据/标准化记录.csv": await readFile(join(task, "collection", "records.csv"), "utf8"),
   "审阅数据/分析单位.csv": await readFile(join(task, "analysis-units.csv"), "utf8"),
   "审阅数据/证据关联.csv": await readFile(join(task, "evidence-links.csv"), "utf8"),
-  "审阅数据/发现清单.csv": csv(tables.findings, [finding]),
+  "审阅数据/发现清单.csv": findingContent,
   "审阅数据/洞察.md": insightContent,
-  "审阅数据/产品假设.csv": csv(tables.hypotheses, [hypothesis]),
+  "审阅数据/产品假设.csv": hypothesisContent,
   "审阅数据/质量检查结果.json": `${JSON.stringify(qualitySummary, null, 2)}\n`
 };
 for (const [path, content] of Object.entries(files)) {
@@ -391,6 +421,51 @@ assert.equal(JSON.parse(await readFile(researchFile, "utf8")).status, "completed
 assert.match(run("validate", "--task", task, "--for-delivery"), /校验通过/);
 run("pack", "--task", task, "--output", archive);
 assert.ok((await readFile(archive)).length > 100);
+
+// 三种正式用途必须各自要求对应的多维编码。
+async function assertResearchUse(use, dimensions) {
+  const rootDir = await mkdtemp(join(tmpdir(), `voc-${use}-`));
+  const fixtureTask = join(rootDir, "fixture");
+  run("init", "--root", rootDir, "--name", "fixture");
+  const fixtureResearchFile = join(fixtureTask, "research.json");
+  const fixtureResearch = JSON.parse(await readFile(fixtureResearchFile, "utf8"));
+  fixtureResearch.research_use = use;
+  fixtureResearch.target_users = "测试目标用户";
+  fixtureResearch.current_stage = "analysis";
+  fixtureResearch.status = "running";
+  fixtureResearch.gates.intake.status = "passed";
+  fixtureResearch.gates.design.status = "passed";
+  fixtureResearch.gates.capability.status = "passed";
+  fixtureResearch.gates.collection_quality.status = "passed";
+  fixtureResearch.stage_history = [
+    { stage: "intake", status: "entered", at: iso, reason: "test" },
+    { stage: "design", status: "entered", at: iso, reason: "test" },
+    { stage: "capability", status: "entered", at: iso, reason: "test" },
+    { stage: "collection", status: "entered", at: iso, reason: "test" },
+    { stage: "collection_quality", status: "entered", at: iso, reason: "test" },
+    { stage: "collection_quality", status: "passed", at: iso, reason: "test" },
+    { stage: "analysis", status: "entered", at: iso, reason: "test" }
+  ];
+  await writeFile(fixtureResearchFile, `${JSON.stringify(fixtureResearch, null, 2)}\n`, "utf8");
+  await writeFile(join(fixtureTask, "collection", "records.csv"), csv(tables.records, [{ record_id: "R-001", query_id: "unknown", request_id: "unknown", raw_ref: "fixture", platform: "reddit", content_model: "threaded-discussion", entity_type: "thread", parent_record_id: "not_applicable", permalink: "https://example.test/profile", published_at: iso, collected_at: iso, text: "测试证据", author: "a", source_location: "r/test", inclusion_status: "included" }]), "utf8");
+  await writeFile(join(fixtureTask, "analysis-units.csv"), csv(tables.analysis_units, [{ unit_id: "U-001", content_model: "threaded-discussion", primary_record_id: "R-001", primary_code: "CODE-001", secondary_codes: "", inclusion_status: "included", dedup_status: "canonical", classification_reason: "测试" }]), "utf8");
+  const profileLinks = dimensions.map((dimension, index) => ({ link_id: `E-${index + 1}`, unit_id: "U-001", record_id: "R-001", code_id: "CODE-001", dimension, evidence_role: index ? "supporting" : "primary", quote: "测试证据", reason: "用途维度测试" }));
+  await writeFile(join(fixtureTask, "evidence-links.csv"), csv(tables.evidence_links, profileLinks.slice(0, -1)), "utf8");
+  await writeFile(join(fixtureTask, "codebook.md"), "# 编码表\n\n## CODE-001 测试编码\n\n- 纳入：测试\n- 排除：无\n", "utf8");
+  await writeFile(join(fixtureTask, "coding-audit.csv"), csv(tables.coding_audit, [{ audit_id: "AUDIT-001", unit_id: "U-001", first_code: "CODE-001", review_code: "CODE-001", agreement: "yes", resolved_code: "CODE-001", reviewed_at: iso, resolution: "confirmed" }]), "utf8");
+  assert.match(run("quality", "--task", fixtureTask, "--stage", "analysis"), /unusable/);
+  fixtureResearch.current_stage = "analysis";
+  fixtureResearch.status = "running";
+  fixtureResearch.gates.analysis_quality.status = "not_started";
+  fixtureResearch.stage_history.push({ stage: "analysis", status: "entered", at: iso, reason: "retry" });
+  await writeFile(fixtureResearchFile, `${JSON.stringify(fixtureResearch, null, 2)}\n`, "utf8");
+  await writeFile(join(fixtureTask, "evidence-links.csv"), csv(tables.evidence_links, profileLinks), "utf8");
+  assert.match(run("quality", "--task", fixtureTask, "--stage", "analysis"), /usable/);
+}
+
+await assertResearchUse("user_needs", ["goal_task", "expected_outcome"]);
+await assertResearchUse("usage_experience", ["current_approach", "friction"]);
+await assertResearchUse("product_problem_improvement", ["friction", "consequence"]);
 
 const legacy = join(await mkdtemp(join(tmpdir(), "voc-v1-")), "legacy");
 await cp(join(root, "tests", "fixture"), legacy, { recursive: true });

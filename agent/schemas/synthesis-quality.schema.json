@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "checked_at", "decision", "finding_count", "insight_count", "hypothesis_count", "source_sha256", "errors", "limitations", "next_step"],
+  "properties": {
+    "schema_version": { "const": 2 },
+    "checked_at": { "type": "string", "format": "date-time" },
+    "decision": { "enum": ["usable", "usable_with_limitations", "unusable"] },
+    "finding_count": { "type": "integer", "minimum": 0 },
+    "insight_count": { "type": "integer", "minimum": 0 },
+    "hypothesis_count": { "type": "integer", "minimum": 0 },
+    "source_sha256": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["findings", "insights", "hypotheses", "report"],
+      "properties": {
+        "findings": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        "insights": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        "hypotheses": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        "report": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+      }
+    },
+    "errors": { "type": "array", "items": { "type": "string" } },
+    "limitations": { "type": "array", "items": { "type": "string" } },
+    "next_step": { "type": "string" }
+  }
+}

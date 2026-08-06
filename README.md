@@ -1,6 +1,6 @@
 # VOCtools
 
-VOCtools 是一个公开 VOC 调研智能体。它把用户需求转换为固定、可审计的九阶段研究流程，并输出可追溯的结构化洞察，可接入不同的智能体运行环境。
+VOCtools 是一个公开 VOC 调研助手。它把用户需求转换为固定、可审计的九阶段研究流程，并输出可追溯的结构化洞察，可接入不同的智能体运行环境。
 
 ## 目录
 
@@ -41,6 +41,7 @@ $node = Join-Path $env:USERPROFILE ".cache\codex-runtimes\codex-primary-runtime\
 node agent/tools/voc_workbench.mjs init --root research --name 任务名
 node agent/tools/voc_workbench.mjs quality --task <任务目录> --stage collection
 node agent/tools/voc_workbench.mjs quality --task <任务目录> --stage analysis
+node agent/tools/voc_workbench.mjs quality --task <任务目录> --stage synthesis
 node agent/tools/voc_workbench.mjs summarize --task <任务目录>
 node agent/tools/voc_workbench.mjs migrate --task <v1任务目录>
 node agent/tools/voc_workbench.mjs validate --task <任务目录> --for-delivery

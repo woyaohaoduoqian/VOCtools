@@ -3,11 +3,13 @@
   "title": "VOC research controller v2",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schema_version", "research_id", "title", "current_stage", "status", "mode", "platform_scope", "content_models", "research_questions", "files", "gates", "sample_target", "approvals", "stage_history", "limitations"],
+  "required": ["schema_version", "research_id", "title", "research_use", "target_users", "current_stage", "status", "mode", "platform_scope", "content_models", "research_questions", "files", "gates", "sample_target", "approvals", "stage_history", "limitations"],
   "properties": {
     "schema_version": { "const": 2 },
     "research_id": { "type": "string", "pattern": "^RESEARCH-[A-Za-z0-9][A-Za-z0-9._-]*$" },
     "title": { "type": "string", "minLength": 1 },
+    "research_use": { "enum": ["unknown", "user_needs", "usage_experience", "product_problem_improvement"] },
+    "target_users": { "type": "string", "minLength": 1 },
     "current_stage": { "enum": ["intake", "design", "capability", "collection", "collection_quality", "analysis", "analysis_quality", "synthesis", "delivery"] },
     "status": { "enum": ["draft", "awaiting_confirmation", "authorized", "running", "blocked", "completed", "cancelled"] },
     "mode": { "enum": ["unknown", "exploratory", "evaluative"] },
@@ -42,13 +44,14 @@
     "gates": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["intake", "design", "capability", "collection_quality", "analysis_quality", "delivery"],
+      "required": ["intake", "design", "capability", "collection_quality", "analysis_quality", "synthesis", "delivery"],
       "properties": {
         "intake": { "$ref": "#/$defs/gate" },
         "design": { "$ref": "#/$defs/gate" },
         "capability": { "$ref": "#/$defs/gate" },
         "collection_quality": { "$ref": "#/$defs/gate" },
         "analysis_quality": { "$ref": "#/$defs/gate" },
+        "synthesis": { "$ref": "#/$defs/gate" },
         "delivery": { "$ref": "#/$defs/gate" }
       }
     },

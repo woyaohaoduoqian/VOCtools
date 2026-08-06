@@ -16,15 +16,28 @@ assert.deepEqual(registry.providers.map((x) => x.provider_id), ["reddit-research
 for (const file of [
   "research.schema.json", "source-requirements.schema.json", "provider-binding.schema.json",
   "collection-run.schema.json", "request-event.schema.json", "collection-quality.schema.json", "analysis-quality.schema.json",
-  "delivery-metadata.schema.json", "delivery-quality-summary.schema.json", "provider-registry.schema.json", "tabular-contracts.json"
+  "synthesis-quality.schema.json", "delivery-metadata.schema.json", "delivery-quality-summary.schema.json", "provider-registry.schema.json", "tabular-contracts.json"
 ]) await access(resolve(root, "agent/schemas", file));
 
 const core = await text("agent/INSTRUCTIONS.md");
 assert.match(core, /先读 `soul\.md`/);
 assert.match(core, /workflows\/research-planning\.md/);
+assert.match(core, /面向用户说明方法和结果时优先使用完整中文名称/);
 for (const forbidden of ["discover_operations", "get_operation_schema", "execute_operation", "OAuth", "https://"]) {
   assert.equal(core.includes(forbidden), false, `generic agent contains ${forbidden}`);
 }
+
+const soul = await text("agent/soul.md");
+assert.match(soul, /你是 VOC 调研助手/);
+assert.match(soul, /## 可以用来做什么/);
+for (const useCase of ["用户需求", "使用体验", "具体使用场景", "反复出现的问题", "产品改进"]) {
+  assert.match(soul, new RegExp(useCase));
+}
+for (const unsupported of ["比较竞品体验", "了解购买", "探索新品", "业务假设提供早期证据"]) {
+  assert.equal(soul.includes(unsupported), false, `soul claims unsupported use case: ${unsupported}`);
+}
+assert.equal(soul.includes("研究问题拆解框架"), false);
+assert.equal(soul.includes("公司内部"), false);
 
 const planning = await text("agent/workflows/research-planning.md");
 const collection = await text("agent/workflows/data-collection.md");
@@ -57,7 +70,7 @@ try {
   const pkg = join(output, "plugins/voc-research-agent");
   const generatedSkill = await readFile(join(pkg, "skills/voc-research-agent/SKILL.md"), "utf8");
   assert.match(generatedSkill, /^---\r?\nname: voctools/m);
-  assert.match(generatedSkill, /# VOC 调研智能体/);
+  assert.match(generatedSkill, /# VOC 调研助手/);
   const generatedManifest = JSON.parse(await readFile(join(pkg, ".codex-plugin/plugin.json"), "utf8"));
   const sourceManifest = await json("integrations/codex/plugin.json");
   assert.match(generatedManifest.version, new RegExp(`^${sourceManifest.version.replaceAll(".", "\\.")}\\+codex\\.\\d{17}$`));
